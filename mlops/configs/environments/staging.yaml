@@ -1,0 +1,19 @@
+environment: staging
+
+app:
+  debug: false
+  api_host: 0.0.0.0
+  api_port: 5000
+
+data:
+  use_sample_data: false
+  sample_size: null
+
+training:
+  run_xgboost: true
+  random_seed: 42
+
+monitoring:
+  enable_metrics: true
+  enable_drift_checks: true
+  log_level: INFO

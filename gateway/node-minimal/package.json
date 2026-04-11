@@ -1,0 +1,13 @@
+{
+  "name": "dropoff-gateway-adapter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal Node gateway adapter forwarding to Python model service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

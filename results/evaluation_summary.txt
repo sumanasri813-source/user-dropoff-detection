@@ -1,0 +1,24 @@
+Model Evaluation Summary
+========================================
+Best threshold: 0.70
+Accuracy      : 0.8470
+Precision     : 0.5694
+Recall        : 0.6486
+F1 Score      : 0.6064
+ROC-AUC       : 0.8849
+PR-AUC        : 0.6377
+Business Value: 130370.00
+
+Confusion Matrix (TN FP / FN TP):
+[[5833  713]
+ [ 511  943]]
+
+Detailed Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.92      0.89      0.91      6546
+           1       0.57      0.65      0.61      1454
+
+    accuracy                           0.85      8000
+   macro avg       0.74      0.77      0.76      8000
+weighted avg       0.86      0.85      0.85      8000

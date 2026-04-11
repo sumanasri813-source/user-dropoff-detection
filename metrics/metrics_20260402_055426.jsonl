@@ -1,0 +1,2 @@
+{"timestamp": "2026-04-02T05:54:26.463775", "event_type": "prediction", "module": "api", "metric_name": "dropoff_probability", "metric_value": 0.7564534445753435, "request_id": "d11e559a-6e52-4510-bfb7-b220bded0e57", "metadata": {"risk_level": "high"}}
+{"timestamp": "2026-04-02T05:54:26.471369", "event_type": "latency", "module": "api", "metric_name": "request_latency_ms", "metric_value": 4027.8217000013683, "request_id": "d11e559a-6e52-4510-bfb7-b220bded0e57", "metadata": {"endpoint": "/predict"}}

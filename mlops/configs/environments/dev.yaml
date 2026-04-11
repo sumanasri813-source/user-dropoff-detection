@@ -1,0 +1,19 @@
+environment: dev
+
+app:
+  debug: true
+  api_host: 0.0.0.0
+  api_port: 5000
+
+data:
+  use_sample_data: true
+  sample_size: 2000
+
+training:
+  run_xgboost: false
+  random_seed: 42
+
+monitoring:
+  enable_metrics: true
+  enable_drift_checks: false
+  log_level: DEBUG
