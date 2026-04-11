@@ -1,0 +1,3 @@
+# Runtime logs and generated monitoring outputs
+logs/*.log
+mlops/monitoring/alerts/*.jsonl

@@ -14,4 +14,3 @@
 {"timestamp": "2026-04-08T06:54:30.239650+00:00", "level": "INFO", "logger": "prediction_service", "message": "prediction_scored", "context": {"probability": 0.751838, "threshold": 0.7, "risk_level": "high", "predicted_label": 1}, "extra": {"taskName": null}}
 {"timestamp": "2026-04-08T14:53:24.032348+00:00", "level": "INFO", "logger": "prediction_service", "message": "model_loaded", "context": {"model_path": "models/final_model.pkl"}, "extra": {"taskName": null}}
 {"timestamp": "2026-04-08T14:53:24.073775+00:00", "level": "INFO", "logger": "prediction_service", "message": "prediction_scored", "context": {"probability": 0.751838, "threshold": 0.7, "risk_level": "high", "predicted_label": 1}, "extra": {"taskName": null}}
-{"timestamp": "2026-04-11T13:00:23.683111+00:00", "level": "INFO", "logger": "prediction_service", "message": "model_loaded", "context": {"model_path": "models/final_model.pkl"}, "extra": {"taskName": null}}
