@@ -17,6 +17,8 @@ monitoring:
   enable_metrics: true
   enable_drift_checks: true
   log_level: WARNING
+  monitor_worker_interval_sec: 120
+  alert_throttle_minutes: 30
 
 security:
   require_auth: true

@@ -30,6 +30,7 @@ model: Any = None
 threshold: float = 0.5
 risk_levels: Dict[str, float] = {"high": 0.7, "medium": 0.4, "low": 0.0}
 monitor_worker: BackgroundMonitorWorker | None = None
+alert_throttle_minutes: int = 5
 
 
 def _load_api_config() -> Tuple[str, int, bool]:
@@ -61,6 +62,21 @@ def _load_model_path() -> str:
     return model_path
 
 
+def _load_monitoring_config() -> tuple[float, int]:
+    interval_sec = 30.0
+    throttle_min = 5
+    try:
+        from src.utils.config_loader import load_config
+
+        cfg = load_config("config.yaml")
+        monitoring = cfg.get("monitoring", {})
+        interval_sec = float(monitoring.get("monitor_worker_interval_sec", interval_sec))
+        throttle_min = int(monitoring.get("alert_throttle_minutes", throttle_min))
+    except Exception:
+        pass
+    return interval_sec, throttle_min
+
+
 def run_monitoring_cycle() -> None:
     persisted = collector.maybe_persist(force=False)
     if persisted:
@@ -68,7 +84,7 @@ def run_monitoring_cycle() -> None:
 
     health_status = HealthChecker.run_full_check().status
     alerts = evaluate_alert_rules(collector.get_api_snapshot(), health_status=health_status)
-    alert_path = persist_alerts(alerts)
+    alert_path = persist_alerts(alerts, throttle_minutes=alert_throttle_minutes)
     if alert_path and alerts:
         logger.warning("alerts_triggered", alert_count=len(alerts), alert_path=alert_path)
 
@@ -226,6 +242,8 @@ def predict_batch_route() -> tuple:
 
 if __name__ == "__main__":
     host, port, debug = _load_api_config()
-    start_monitoring_worker(interval_seconds=30.0)
-    logger.info("api_starting", host=host, port=port, debug=debug)
+    interval_sec, throttle_min = _load_monitoring_config()
+    alert_throttle_minutes = throttle_min
+    start_monitoring_worker(interval_seconds=interval_sec)
+    logger.info("api_starting", host=host, port=port, debug=debug, monitoring_interval_sec=interval_sec, alert_throttle_minutes=throttle_min)
     app.run(host=host, port=port, debug=debug)

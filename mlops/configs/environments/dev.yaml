@@ -17,3 +17,5 @@ monitoring:
   enable_metrics: true
   enable_drift_checks: false
   log_level: DEBUG
+  monitor_worker_interval_sec: 30
+  alert_throttle_minutes: 5

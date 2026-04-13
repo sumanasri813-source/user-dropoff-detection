@@ -45,7 +45,8 @@ class AlertRulesTests(unittest.TestCase):
                             "value": 999,
                             "threshold": 300,
                         }
-                    ]
+                    ],
+                    throttle_minutes=5
                 )
                 self.assertIsNotNone(out)
                 out_path = Path(str(out))
@@ -56,6 +57,37 @@ class AlertRulesTests(unittest.TestCase):
                 self.assertEqual(payload["type"], "service_latency")
             finally:
                 alerts.ALERTS_PATH = original_path
+
+    def test_alert_dedup_prevents_duplicate_persistence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_path = alerts.ALERTS_PATH
+            alerts._last_persisted_alert.clear()
+            try:
+                alerts.ALERTS_PATH = Path(tmpdir) / "alerts.jsonl"
+                alert_obj = {
+                    "type": "service_latency",
+                    "severity": "warning",
+                    "message": "test",
+                    "metric": "latency.p95_ms",
+                    "value": 999,
+                    "threshold": 300,
+                }
+                
+                # First call should persist
+                out1 = alerts.persist_alerts([alert_obj], throttle_minutes=60)
+                self.assertIsNotNone(out1)
+                
+                # Second call with same alert and throttle_minutes=60 should NOT persist
+                out2 = alerts.persist_alerts([alert_obj], throttle_minutes=60)
+                self.assertIsNone(out2, "Duplicate alert within throttle window should not persist")
+                
+                # Verify file has exactly 1 line (only first alert persisted)
+                out_path = Path(str(out1))
+                lines = out_path.read_text(encoding="utf-8").strip().splitlines()
+                self.assertEqual(len(lines), 1)
+            finally:
+                alerts.ALERTS_PATH = original_path
+                alerts._last_persisted_alert.clear()
 
 
 if __name__ == "__main__":
