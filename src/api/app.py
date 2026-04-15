@@ -3,9 +3,11 @@
 import atexit
 import time
 import uuid
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 from flask import Flask, g, jsonify, request
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from src.api.prediction_service import (
     load_decision_threshold,
@@ -15,11 +17,23 @@ from src.api.prediction_service import (
     predict_one,
     validate_payload,
 )
+from src.db.connection import get_session_factory, init_database
+from src.db.crud import (
+    create_prediction_record,
+    create_user,
+    delete_user,
+    get_user,
+    list_predictions,
+    list_users,
+    update_user,
+)
+from src.utils.auth import create_api_key_guard, load_security_config
 from src.utils.alerts import evaluate_alert_rules, persist_alerts
 from src.utils.health import HealthChecker
 from src.utils.logger import get_logger
 from src.utils.metrics import get_collector, request_id_var
 from src.utils.monitoring_worker import BackgroundMonitorWorker
+from src.utils.runtime_config import load_api_config, load_model_path, load_monitoring_config
 
 
 app = Flask(__name__)
@@ -31,50 +45,13 @@ threshold: float = 0.5
 risk_levels: Dict[str, float] = {"high": 0.7, "medium": 0.4, "low": 0.0}
 monitor_worker: BackgroundMonitorWorker | None = None
 alert_throttle_minutes: int = 5
+require_auth: bool = False
+api_key: str | None = None
+SessionLocal = get_session_factory()
 
 
-def _load_api_config() -> Tuple[str, int, bool]:
-    host = "0.0.0.0"
-    port = 5000
-    debug = False
-    try:
-        from src.utils.config_loader import load_config
-
-        cfg = load_config("config.yaml")
-        api_cfg = cfg.get("deployment", {}).get("api", {})
-        host = str(api_cfg.get("host", host))
-        port = int(api_cfg.get("port", port))
-        debug = bool(api_cfg.get("debug", debug))
-    except Exception:
-        pass
-    return host, port, debug
-
-
-def _load_model_path() -> str:
-    model_path = "models/final_model.pkl"
-    try:
-        from src.utils.config_loader import load_config
-
-        cfg = load_config("config.yaml")
-        model_path = str(cfg.get("deployment", {}).get("model_path", model_path))
-    except Exception:
-        pass
-    return model_path
-
-
-def _load_monitoring_config() -> tuple[float, int]:
-    interval_sec = 30.0
-    throttle_min = 5
-    try:
-        from src.utils.config_loader import load_config
-
-        cfg = load_config("config.yaml")
-        monitoring = cfg.get("monitoring", {})
-        interval_sec = float(monitoring.get("monitor_worker_interval_sec", interval_sec))
-        throttle_min = int(monitoring.get("alert_throttle_minutes", throttle_min))
-    except Exception:
-        pass
-    return interval_sec, throttle_min
+require_auth, api_key = load_security_config("config.yaml")
+require_api_key = create_api_key_guard(lambda: (require_auth, api_key))
 
 
 def run_monitoring_cycle() -> None:
@@ -116,7 +93,7 @@ def before_request_hooks() -> None:
     request_id_var.set(g.request_id)
 
     if model is None:
-        model = load_model(_load_model_path())
+        model = load_model(load_model_path())
         threshold = load_decision_threshold()
         risk_levels = load_risk_levels()
 
@@ -170,16 +147,26 @@ def favicon() -> tuple:
 
 
 @app.route("/health", methods=["GET"])
+@require_api_key
 def health() -> tuple:
     health_status = HealthChecker.run_full_check()
     health_payload = HealthChecker.health_to_dict(health_status)
     monitor_snapshot = collector.get_api_snapshot()
+
+    db_health = {"connected": False, "error": None}
+    try:
+        with SessionLocal() as session:
+            session.execute(text("SELECT 1"))
+        db_health["connected"] = True
+    except Exception as db_exc:
+        db_health["error"] = str(db_exc)
 
     response = {
         "status": "ok" if health_payload.get("status") != "unhealthy" else "error",
         "model_loaded": model is not None,
         "threshold": threshold,
         "health": health_payload,
+        "database": db_health,
         "monitoring": monitor_snapshot,
         "worker": {
             "running": bool(monitor_worker and monitor_worker.is_running()),
@@ -191,17 +178,20 @@ def health() -> tuple:
 
 
 @app.route("/monitor", methods=["GET"])
+@require_api_key
 def monitor() -> tuple:
     return jsonify(collector.get_api_snapshot()), 200
 
 
 @app.route("/monitor/persist", methods=["POST"])
+@require_api_key
 def monitor_persist() -> tuple:
     persisted = collector.maybe_persist(force=True)
     return jsonify({"persisted": bool(persisted), "paths": persisted or {}}), 200
 
 
 @app.route("/predict", methods=["POST"])
+@require_api_key
 def predict() -> tuple:
     payload: Dict[str, Any] = request.get_json(silent=True) or {}
     ok, message = validate_payload(payload)
@@ -211,6 +201,16 @@ def predict() -> tuple:
 
     try:
         result = predict_one(model, payload, threshold, risk_levels)
+        try:
+            with SessionLocal() as session:
+                create_prediction_record(
+                    session=session,
+                    prediction_result=result,
+                    request_id=getattr(g, "request_id", ""),
+                    payload=payload,
+                )
+        except Exception as db_exc:
+            logger.error("prediction_db_persist_failed", error=str(db_exc))
         return jsonify({**result, "request_id": getattr(g, "request_id", "")}), 200
     except Exception as exc:
         collector.increment_counter("prediction_runtime_errors")
@@ -218,7 +218,91 @@ def predict() -> tuple:
         return jsonify({"error": str(exc), "request_id": getattr(g, "request_id", "")}), 400
 
 
+@app.route("/users", methods=["POST"])
+@require_api_key
+def users_create() -> tuple:
+    payload: Dict[str, Any] = request.get_json(silent=True) or {}
+    if not payload.get("external_user_id"):
+        return jsonify({"error": "Field 'external_user_id' is required."}), 400
+
+    try:
+        with SessionLocal() as session:
+            row = create_user(session, payload)
+        return jsonify(row), 201
+    except IntegrityError:
+        return jsonify({"error": "external_user_id must be unique."}), 409
+    except Exception as exc:
+        logger.error("users_create_failed", error=str(exc))
+        return jsonify({"error": str(exc)}), 400
+
+
+@app.route("/users", methods=["GET"])
+@require_api_key
+def users_list() -> tuple:
+    limit = int(request.args.get("limit", 100))
+    offset = int(request.args.get("offset", 0))
+    user_segment = request.args.get("user_segment")
+    limit = max(1, min(1000, limit))
+    offset = max(0, offset)
+    with SessionLocal() as session:
+        rows = list_users(session, limit=limit, offset=offset, user_segment=user_segment)
+    return jsonify({"count": len(rows), "users": rows}), 200
+
+
+@app.route("/users/<int:user_id>", methods=["GET"])
+@require_api_key
+def users_get(user_id: int) -> tuple:
+    with SessionLocal() as session:
+        row = get_user(session, user_id=user_id)
+    if not row:
+        return jsonify({"error": "User not found."}), 404
+    return jsonify(row), 200
+
+
+@app.route("/users/<int:user_id>", methods=["PUT"])
+@require_api_key
+def users_update(user_id: int) -> tuple:
+    payload: Dict[str, Any] = request.get_json(silent=True) or {}
+    with SessionLocal() as session:
+        row = update_user(session, user_id=user_id, payload=payload)
+    if not row:
+        return jsonify({"error": "User not found."}), 404
+    return jsonify(row), 200
+
+
+@app.route("/users/<int:user_id>", methods=["DELETE"])
+@require_api_key
+def users_delete(user_id: int) -> tuple:
+    with SessionLocal() as session:
+        deleted = delete_user(session, user_id=user_id)
+    if not deleted:
+        return jsonify({"error": "User not found."}), 404
+    return jsonify({"deleted": True, "user_id": user_id}), 200
+
+
+@app.route("/predictions", methods=["GET"])
+@require_api_key
+def predictions_list() -> tuple:
+    limit = int(request.args.get("limit", 100))
+    offset = int(request.args.get("offset", 0))
+    risk_level = request.args.get("risk_level")
+    min_probability_raw = request.args.get("min_probability")
+    min_probability = float(min_probability_raw) if min_probability_raw is not None else None
+    limit = max(1, min(1000, limit))
+    offset = max(0, offset)
+    with SessionLocal() as session:
+        rows = list_predictions(
+            session,
+            limit=limit,
+            offset=offset,
+            risk_level=risk_level,
+            min_probability=min_probability,
+        )
+    return jsonify({"count": len(rows), "predictions": rows}), 200
+
+
 @app.route("/predict-batch", methods=["POST"])
+@require_api_key
 def predict_batch_route() -> tuple:
     payload: Dict[str, Any] = request.get_json(silent=True) or {}
     records = payload.get("records", [])
@@ -241,8 +325,10 @@ def predict_batch_route() -> tuple:
 
 
 if __name__ == "__main__":
-    host, port, debug = _load_api_config()
-    interval_sec, throttle_min = _load_monitoring_config()
+    require_auth, api_key = load_security_config("config.yaml")
+    init_database()
+    host, port, debug = load_api_config()
+    interval_sec, throttle_min = load_monitoring_config()
     alert_throttle_minutes = throttle_min
     start_monitoring_worker(interval_seconds=interval_sec)
     logger.info("api_starting", host=host, port=port, debug=debug, monitoring_interval_sec=interval_sec, alert_throttle_minutes=throttle_min)

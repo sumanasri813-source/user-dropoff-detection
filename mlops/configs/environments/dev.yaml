@@ -19,3 +19,14 @@ monitoring:
   log_level: DEBUG
   monitor_worker_interval_sec: 30
   alert_throttle_minutes: 5
+
+database:
+  type: sqlite
+  database: mlops/dev.db
+  url: ""
+  echo: false
+
+security:
+  require_auth: false
+  api_key: dev-local-key
+  api_key_env_var: API_KEY

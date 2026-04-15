@@ -171,6 +171,8 @@ database:
   user: "your_username"
   password: "your_password"
   database: "dropoff_detection"
+  url: ""  # Optional full SQLAlchemy URL, overrides fields above when set
+  echo: false
 
 # Experiment Tracking
 experiment_tracking:
@@ -186,6 +188,13 @@ notifications:
     - "your_email@university.edu"
   slack_enabled: false
   slack_webhook: ""
+
+# API Security Configuration
+security:
+  require_auth: false
+  api_key: ""
+  api_key_env_var: "API_KEY"
+  enable_rate_limiting: false
 
 # Random Seeds (for reproducibility)
 seeds:

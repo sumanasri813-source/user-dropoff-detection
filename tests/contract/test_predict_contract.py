@@ -121,6 +121,95 @@ class PredictContractTests(unittest.TestCase):
         errors = list(self.error_validator.iter_errors(public_error))
         self.assertEqual(errors, [], f"Schema validation errors: {[e.message for e in errors]}")
 
+    def test_predict_requires_api_key_when_enabled(self) -> None:
+        original_require_auth = api_app_module.require_auth
+        original_api_key = api_app_module.api_key
+        original_model = api_app_module.model
+        try:
+            api_app_module.require_auth = True
+            api_app_module.api_key = "test-key"
+            api_app_module.model = object()
+
+            payload = {
+                "days_signup_age": 10,
+                "recency_days": 2,
+                "frequency_total": 20,
+                "session_duration_avg": 12.5,
+                "feature_count_used": 4,
+                "device_type": "mobile",
+                "os_type": "android",
+                "user_segment": "free",
+                "region": "north",
+            }
+
+            with flask_app.test_client() as client:
+                unauthorized = client.post("/predict", json=payload)
+                self.assertEqual(unauthorized.status_code, 401)
+
+                authorized = client.post("/predict", json=payload, headers={"X-API-Key": "test-key"})
+                self.assertIn(authorized.status_code, {200, 400})
+        finally:
+            api_app_module.require_auth = original_require_auth
+            api_app_module.api_key = original_api_key
+            api_app_module.model = original_model
+
+    def test_predict_batch_requires_api_key_when_enabled(self) -> None:
+        original_require_auth = api_app_module.require_auth
+        original_api_key = api_app_module.api_key
+        original_model = api_app_module.model
+        original_predict_batch = api_app_module.predict_batch
+        try:
+            api_app_module.require_auth = True
+            api_app_module.api_key = "test-key"
+            api_app_module.model = object()
+
+            def _stub_predict_batch(model: Any, records: list[Dict[str, Any]], threshold: float, risk_levels: Dict[str, float]):
+                return {
+                    "total_records": len(records),
+                    "successful_predictions": len(records),
+                    "failed_predictions": 0,
+                    "predictions": [
+                        {
+                            "dropoff_probability": 0.8123,
+                            "predicted_label": 1,
+                            "risk_level": "high",
+                            "threshold_used": 0.5,
+                        }
+                        for _ in records
+                    ],
+                    "errors": [],
+                }
+
+            api_app_module.predict_batch = _stub_predict_batch
+
+            payload = {
+                "records": [
+                    {
+                        "days_signup_age": 10,
+                        "recency_days": 2,
+                        "frequency_total": 20,
+                        "session_duration_avg": 12.5,
+                        "feature_count_used": 4,
+                        "device_type": "mobile",
+                        "os_type": "android",
+                        "user_segment": "free",
+                        "region": "north",
+                    }
+                ]
+            }
+
+            with flask_app.test_client() as client:
+                unauthorized = client.post("/predict-batch", json=payload)
+                self.assertEqual(unauthorized.status_code, 401)
+
+                authorized = client.post("/predict-batch", json=payload, headers={"X-API-Key": "test-key"})
+                self.assertEqual(authorized.status_code, 200)
+        finally:
+            api_app_module.require_auth = original_require_auth
+            api_app_module.api_key = original_api_key
+            api_app_module.model = original_model
+            api_app_module.predict_batch = original_predict_batch
+
     @staticmethod
     def _to_public_success(request_id: str, model_response: Dict[str, Any]) -> Dict[str, Any]:
         return {

@@ -20,6 +20,18 @@ monitoring:
   monitor_worker_interval_sec: 120
   alert_throttle_minutes: 30
 
+database:
+  type: postgresql
+  host: localhost
+  port: 5432
+  user: prod_user
+  password: prod_password
+  database: dropoff_detection_prod
+  url: ""
+  echo: false
+
 security:
   require_auth: true
+  api_key: ""
+  api_key_env_var: API_KEY
   enable_rate_limiting: true

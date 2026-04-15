@@ -19,3 +19,18 @@ monitoring:
   log_level: INFO
   monitor_worker_interval_sec: 60
   alert_throttle_minutes: 10
+
+database:
+  type: postgresql
+  host: localhost
+  port: 5432
+  user: staging_user
+  password: staging_password
+  database: dropoff_detection_staging
+  url: ""
+  echo: false
+
+security:
+  require_auth: true
+  api_key: ""
+  api_key_env_var: API_KEY
