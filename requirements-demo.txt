@@ -5,7 +5,9 @@
 # Core data + ML
 numpy==1.26.4
 pandas==2.2.2
-scikit-learn==1.5.2
+# Keep this aligned with model training environment to avoid
+# InconsistentVersionWarning during model load/inference.
+scikit-learn==1.8.0
 joblib==1.4.2
 
 # Config

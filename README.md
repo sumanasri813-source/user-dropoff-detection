@@ -1,239 +1,161 @@
 # User Drop-Off Detection in Web Applications
-## Quick Start Guide
 
-### 📋 Project Overview
-This project uses Machine Learning to detect users who are likely to leave (drop-off) a web application, enabling proactive intervention strategies.
+Production-oriented machine learning system that predicts user churn risk and exposes secured inference APIs for operational use.
 
-**Goal:** Build a predictive model that identifies at-risk users 30 days before they become inactive.
+## Problem Statement
 
----
+Digital products lose revenue when high-risk users leave before intervention. This project predicts user drop-off probability early enough to trigger retention actions.
 
-## 🚀 QUICK START (Next 30 Minutes)
+Business objective:
+- Identify high-risk users before churn
+- Provide low-latency API inference
+- Enable monitored, repeatable training and evaluation through CI/CD
 
-### Step 1: Read the Roadmap
-Open `PROJECT_ROADMAP.md` - It contains your complete guide with every tiny step.
+## Architecture and CI/CD Pipeline
 
-### Step 2: Create Project Structure
-```bash
-# Run these commands in your terminal
+Core components:
+- Data pipeline: synthetic generation and preprocessing
+- Feature engineering: behavioral + categorical risk features
+- Model training: multi-model candidate selection with persisted best model
+- Evaluation: threshold analysis, quality metrics, business-value scoring
+- API layer: secured Flask endpoints for prediction, health, monitoring, and CRUD
+- Monitoring: runtime metrics snapshots and alert artifacts
 
-# Create directories
-mkdir data data\raw data\processed
-mkdir src src\data src\features src\models src\evaluation src\api src\dashboard src\utils
-mkdir notebooks
-mkdir models
-mkdir results
-mkdir docs
-mkdir tests
-```
+CI/CD workflow stages in [.github/workflows/mlops-ci-cd.yml](.github/workflows/mlops-ci-cd.yml):
+1. Test Stage
+2. Train Stage
+3. Evaluate Stage
+4. Deploy Dev or Staging or Production (branch-based)
 
-### Step 3: Set Up Python Environment
-```bash
-# Create virtual environment
+## Repository Structure
+
+- src/: application and ML source code
+- src/data/: data generation and preprocessing entrypoints
+- src/features/: feature engineering logic
+- src/models/: training pipeline
+- src/evaluation/: evaluation pipeline and reporting
+- src/api/: production API routes and services
+- mlops/: environment configs, deployment helpers, monitoring artifacts
+- tests/: contract and integration tests
+- data/: raw and processed datasets
+- models/: serialized model artifacts
+- results/: evaluation and training outputs
+
+## How to Run the Project
+
+Recommended environment:
+- Python 3.11
+- Virtual environment
+
+Install:
+
+```powershell
 python -m venv venv
-
-# Activate it
-venv\Scripts\activate  # On Windows
-# or
-source venv/bin/activate  # On MacOS/Linux
-
-# Install dependencies
-pip install -r requirements.txt
+venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -r requirements-demo.txt
 ```
 
-### Step 4: Verify Installation
-```bash
-python -c "import pandas; import sklearn; print('✓ All packages installed!')"
+One-click demo path:
+1. Open Command Palette
+2. Run Tasks: Run Task
+3. Choose Run final demo process
+
+Equivalent terminal command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File run_final_process.ps1
 ```
 
----
+Manual pipeline commands:
 
-## 📚 How to Use This Project
-
-1. **Read First:** Start with `PROJECT_ROADMAP.md` - it guides every single step
-2. **Follow Phase by Phase:** Don't skip ahead - each phase builds on the previous
-3. **Code Along:** Create scripts as described in the roadmap
-4. **Test Frequently:** Work incrementally and test after each phase
-5. **Document Everything:** Write comments explaining your code
-
----
-
-## 🎯 Key Phases at a Glance
-
-| Phase | Duration | Focus |
-|-------|----------|-------|
-| **1** | Week 1 | Setup & Planning |
-| **2-3** | Week 2-3 | Data Collection & Analysis |
-| **4-5** | Week 4-5 | Feature Engineering & Preprocessing |
-| **6-7** | Week 6-7 | Model Development |
-| **8-9** | Week 8-9 | Tuning & Evaluation |
-| **10-12** | Week 10-12 | Deployment & Documentation |
-
----
-
-## 📁 What Each Folder Means
-
-```
-user-dropoff-detection/
-├── data/               ← Store datasets here
-├── src/                ← All your code goes here
-├── notebooks/          ← Jupyter notebooks for exploration
-├── models/             ← Saved trained models
-├── results/            ← Plots, metrics, outputs
-├── docs/               ← Documentation
-└── tests/              ← Unit & integration tests
-```
-
----
-
-## 💡 First Real Task (Phase 1)
-
-1. **Create data directory structure** ✓ (done above)
-2. **Create config.yaml** - Configuration file
-3. **Start first Jupyter notebook** - For data exploration
-
----
-
-## ❓ Questions?
-
-Refer to the `PROJECT_ROADMAP.md` - it has answers to everything!
-
----
-
-**Next Step:** Open `PROJECT_ROADMAP.md` and start with Phase 1! 🎉
-
----
-
-## ✅ Ready-to-Run Implementation Added
-
-This repository now includes a complete beginner-friendly implementation:
-
-- `STEP_BY_STEP_IMPLEMENTATION.md` - Full execution guide for your project title
-- `run_pipeline.py` - Run full ML pipeline in one command
-- `src/data/generate_synthetic_data.py` - Synthetic data generator
-- `src/features/build_features.py` - Feature dataset builder
-- `src/models/train_model.py` - Model training script
-- `src/evaluation/evaluate_model.py` - Evaluation script
-- `src/api/app.py` - Flask API for prediction
-
-Quick demo command:
-
-```bash
-python run_pipeline.py
-```
-
----
-
-## API Key + Filter Examples (Guide/Demo)
-
-### Security Notes
-
-- Protected routes use a shared auth decorator from `src/utils/auth.py`.
-- If `security.require_auth` is `true`, requests must include `X-API-Key`.
-- `API_KEY` env var takes priority over `security.api_key` in YAML config.
-- `/favicon.ico` remains public so browser requests do not create auth noise.
-
-Set your key first:
-
-```bash
-set API_KEY=your-secret-key
-```
-
-List users (auth required when `security.require_auth: true`):
-
-```bash
-curl -H "X-API-Key: %API_KEY%" "http://127.0.0.1:5000/users?limit=5&offset=0&user_segment=premium"
-```
-
-List predictions with filters:
-
-```bash
-curl -H "X-API-Key: %API_KEY%" "http://127.0.0.1:5000/predictions?risk_level=high&min_probability=0.7&limit=10"
-```
-
-Read monitor snapshot:
-
-```bash
-curl -H "X-API-Key: %API_KEY%" "http://127.0.0.1:5000/monitor"
-```
-
-Make a single prediction:
-
-```bash
-curl -X POST -H "Content-Type: application/json" -H "X-API-Key: %API_KEY%" \
-	-d "{\"days_signup_age\":10,\"recency_days\":2,\"frequency_total\":20,\"session_duration_avg\":12.5,\"feature_count_used\":4,\"device_type\":\"mobile\",\"os_type\":\"android\",\"user_segment\":\"free\",\"region\":\"north\"}" \
-	"http://127.0.0.1:5000/predict"
-```
-
-Make a batch prediction:
-
-```bash
-curl -X POST -H "Content-Type: application/json" -H "X-API-Key: %API_KEY%" \
-	-d "{\"records\":[{\"days_signup_age\":10,\"recency_days\":2,\"frequency_total\":20,\"session_duration_avg\":12.5,\"feature_count_used\":4,\"device_type\":\"mobile\",\"os_type\":\"android\",\"user_segment\":\"free\",\"region\":\"north\"}]}" \
-	"http://127.0.0.1:5000/predict-batch"
-```
-
-Force persist monitoring data:
-
-```bash
-curl -X POST -H "X-API-Key: %API_KEY%" "http://127.0.0.1:5000/monitor/persist"
-```
-
----
-
-## MCA Final 5-Minute Runbook
-
-Use this exact flow for project demo/evaluation.
-
-One-click option in VS Code:
-- Open Command Palette -> `Tasks: Run Task` -> choose `Run final demo process`
-- This runs `run_final_process.ps1` and prints health output when ready.
-
-1. Install dependencies
-
-```bash
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-2. Initialize database schema
-
-```bash
-python mlops/deployment/db/migrate.py
-```
-
-3. Set runtime environment and API key (Windows)
-
-```bash
-set APP_ENV=dev
-set API_KEY=dev-local-key
-```
-
-4. Start API
-
-```bash
+```powershell
+python -m src.data.run_data_step
+python -m src.features.build_features
+python -m src.models.train_model
+python -m src.evaluation.evaluate_model
 python -m src.api.app
 ```
 
-5. Verify protected health endpoint (new terminal)
+## API Usage
 
-```bash
-curl -H "X-API-Key: %API_KEY%" "http://127.0.0.1:5000/health"
+Base URL:
+- http://127.0.0.1:5000
+
+Auth model:
+- Protected routes require X-API-Key when security.require_auth is true
+
+Set local key (Windows):
+
+```powershell
+$env:API_KEY="dev-local-key"
 ```
 
-## Final Acceptance Checklist
+Health:
 
-- API boots without import/runtime errors.
-- `/health`, `/monitor`, `/predict`, `/predict-batch`, `/users`, `/predictions` return `401` without key when auth is enabled.
-- Same endpoints return successful responses with valid `X-API-Key`.
-- DB migration runs and tables are created.
-- Contract tests pass for prediction and CRUD flows.
-- Monitoring worker starts and metrics endpoints respond.
+```powershell
+curl -H "X-API-Key: dev-local-key" http://127.0.0.1:5000/health
+```
 
-## Final Output Evidence Files
+Single prediction:
 
-- `results/evaluation_metrics.json`
-- `results/evaluation_summary.txt`
-- `results/model_comparison.csv`
-- `mlops/monitoring/alerts/alerts.jsonl`
-- `metrics/` JSONL snapshots
+```powershell
+curl -X POST http://127.0.0.1:5000/predict -H "Content-Type: application/json" -H "X-API-Key: dev-local-key" -d "{\"days_signup_age\":10,\"recency_days\":2,\"frequency_total\":20,\"session_duration_avg\":12.5,\"feature_count_used\":4,\"device_type\":\"mobile\",\"os_type\":\"android\",\"user_segment\":\"free\",\"region\":\"north\"}"
+```
+
+Batch prediction:
+
+```powershell
+curl -X POST http://127.0.0.1:5000/predict-batch -H "Content-Type: application/json" -H "X-API-Key: dev-local-key" -d "{\"records\":[{\"days_signup_age\":10,\"recency_days\":2,\"frequency_total\":20,\"session_duration_avg\":12.5,\"feature_count_used\":4,\"device_type\":\"mobile\",\"os_type\":\"android\",\"user_segment\":\"free\",\"region\":\"north\"}]}"
+```
+
+## Model Details
+
+Training pipeline highlights:
+- Candidate models: logistic regression and random forest, optional XGBoost when available
+- Preprocessing: numeric imputation and scaling, categorical imputation and one-hot encoding
+- Selection metric: ROC-AUC (best model persisted)
+- Persisted artifacts:
+  - models/final_model.pkl
+  - models/best_model.pkl
+  - results/model_comparison.csv
+  - results/training_summary.json
+
+Evaluation outputs:
+- results/evaluation_metrics.json
+- results/evaluation_summary.txt
+- results/threshold_analysis.csv
+
+## Results
+
+The project produces recruiter-ready evidence across model quality, threshold optimization, and operational readiness.
+
+Primary metrics tracked:
+- ROC-AUC
+- F1 Score
+- Precision and Recall
+- Business-value score from confusion-matrix outcomes
+
+Deployment readiness indicators:
+- Contract tests for secured endpoints
+- Health and monitor endpoints with runtime metrics
+- CI/CD gates that block low-quality models
+
+## Reproducibility and Versioning
+
+To avoid model deserialization issues, runtime and training environments should use the same scikit-learn major/minor version.
+
+Current demo runtime pin:
+- scikit-learn==1.8.0 in requirements-demo.txt
+
+Recommended production approach:
+1. Pin exact dependency versions for train and serve environments
+2. Store model metadata with library versions at training time
+3. Retrain model whenever major framework versions change
+
+## Final Submission Checklist
+
+- CI pipeline passes Test, Train, Evaluate stages
+- API protected routes behave correctly with and without key
+- Final model and evaluation artifacts are generated
+- README, DEMO flow, and run scripts are consistent

@@ -2,7 +2,7 @@
 
 on:
   push:
-    branches: ["main", "develop", "feature/**"]
+    branches: ["main", "develop", "feature/**", "detection"]
   pull_request:
     branches: ["main", "develop"]
   workflow_dispatch:
@@ -90,6 +90,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: training-artifacts
+          if-no-files-found: error
           path: |
             models/*.pkl
             results/model_comparison.csv
@@ -121,11 +122,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: training-artifacts
+          path: .
 
       - name: Rebuild data and evaluate model
         run: |
           python -m src.data.run_data_step
           python -m src.features.build_features
+          test -f models/final_model.pkl
           python -m src.evaluation.evaluate_model
 
       - name: Quality gates
@@ -155,6 +158,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: evaluation-artifacts
+          if-no-files-found: error
           path: |
             results/evaluation_summary.txt
             results/evaluation_metrics.json
@@ -178,9 +182,17 @@ jobs:
           name: evaluation-artifacts
           path: results
 
+      - name: Download training artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: training-artifacts
+          path: .
+
       - name: Build deployment package
         run: |
           mkdir -p dist
+          test -f models/final_model.pkl
+          test -f results/evaluation_metrics.json
           tar -czf dist/user-dropoff-mlops-dev.tar.gz src models config.yaml requirements.txt mlops results
 
       - name: Upload deployment bundle
@@ -207,9 +219,17 @@ jobs:
           name: evaluation-artifacts
           path: results
 
+      - name: Download training artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: training-artifacts
+          path: .
+
       - name: Build deployment package
         run: |
           mkdir -p dist
+          test -f models/final_model.pkl
+          test -f results/evaluation_metrics.json
           tar -czf dist/user-dropoff-mlops-staging.tar.gz src models config.yaml requirements.txt mlops results
 
       - name: Upload deployment bundle
@@ -238,9 +258,17 @@ jobs:
           name: evaluation-artifacts
           path: results
 
+      - name: Download training artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: training-artifacts
+          path: .
+
       - name: Build deployment package
         run: |
           mkdir -p dist
+          test -f models/final_model.pkl
+          test -f results/evaluation_metrics.json
           tar -czf dist/user-dropoff-mlops-prod.tar.gz src models config.yaml requirements.txt mlops results
 
       - name: Upload deployment bundle

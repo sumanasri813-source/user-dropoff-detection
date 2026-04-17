@@ -1,5 +1,6 @@
 param(
-    [switch]$SkipInstall
+    [switch]$SkipInstall,
+    [switch]$UseFullRequirements
 )
 
 $ErrorActionPreference = 'Stop'
@@ -8,20 +9,32 @@ Set-StrictMode -Version Latest
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $repoRoot
 
+function Invoke-Step {
+    param(
+        [scriptblock]$Command,
+        [string]$ErrorMessage
+    )
+
+    & $Command
+    if ($LASTEXITCODE -ne 0) {
+        throw $ErrorMessage
+    }
+}
+
 if (-not $SkipInstall) {
+    $requirementsFile = if ($UseFullRequirements) { 'requirements.txt' } else { 'requirements-demo.txt' }
     Write-Host 'Installing dependencies...'
-    python -m pip install --upgrade pip
-    python -m pip install -r requirements.txt
+    Invoke-Step -Command { python -m pip install --upgrade pip setuptools wheel } -ErrorMessage 'Failed to prepare pip/setuptools/wheel.'
+    Invoke-Step -Command { python -m pip install -r $requirementsFile } -ErrorMessage "Failed to install dependencies from $requirementsFile."
 }
 
 Write-Host 'Running database migration...'
-python mlops/deployment/db/migrate.py
+Invoke-Step -Command { python mlops/deployment/db/migrate.py } -ErrorMessage 'Database migration failed.'
 
 Write-Host 'Running core contract tests...'
-python -m pytest tests/contract/test_predict_contract.py tests/contract/test_crud_operations.py -q
+Invoke-Step -Command { python -m pytest tests/contract/test_predict_contract.py tests/contract/test_crud_operations.py -q } -ErrorMessage 'Contract tests failed.'
 
 Write-Host 'Starting API server in the background...'
-$env:APP_ENV = $env:APP_ENV
 if (-not $env:APP_ENV) { $env:APP_ENV = 'dev' }
 if (-not $env:API_KEY) { $env:API_KEY = 'dev-local-key' }
 

@@ -1,3 +1,37 @@
-# Runtime logs and generated monitoring outputs
-logs/*.log
-mlops/monitoring/alerts/*.jsonl
+# Python bytecode and cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test cache
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+
+# Local environment files
+.env
+
+# Logs and runtime artifacts
+logs/
+*.log
+
+# Metrics and event streams
+*.jsonl
+
+# Local databases
+*.db
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE/editor
+.vscode/
+.idea/
