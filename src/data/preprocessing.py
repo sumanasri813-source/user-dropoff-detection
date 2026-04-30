@@ -27,19 +27,6 @@ class PreprocessResult:
     report: Dict[str, int]
 
 
-def _clip_outliers_iqr(df: pd.DataFrame, col: str, factor: float = 1.5) -> pd.Series:
-    q1 = df[col].quantile(0.25)
-    q3 = df[col].quantile(0.75)
-    iqr = q3 - q1
-
-    if iqr == 0:
-        return df[col]
-
-    lower = q1 - factor * iqr
-    upper = q3 + factor * iqr
-    return df[col].clip(lower=lower, upper=upper)
-
-
 def _normalize_categories(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["device_type"] = df["device_type"].astype(str).str.strip().str.lower()
@@ -82,9 +69,15 @@ def preprocess_dataframe(raw_df: pd.DataFrame) -> PreprocessResult:
     for col in bounded_cols:
         df[col] = df[col].clip(lower=0)
 
-    # Reduce extreme values without dropping records.
+    # Reduce extreme values without dropping records - vectorized inline O(n)
     for col in NUMERIC_COLUMNS:
-        df[col] = _clip_outliers_iqr(df, col)
+        q1 = df[col].quantile(0.25)
+        q3 = df[col].quantile(0.75)
+        iqr = q3 - q1
+        if iqr > 0:
+            lower = q1 - 1.5 * iqr
+            upper = q3 + 1.5 * iqr
+            df[col] = df[col].clip(lower=lower, upper=upper)
 
     # Clean and map categorical values to known domain sets.
     df = _normalize_categories(df)

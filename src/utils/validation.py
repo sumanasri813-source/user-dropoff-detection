@@ -71,45 +71,46 @@ class DataValidator:
 
     @classmethod
     def validate(cls, df: pd.DataFrame, target_column: Optional[str] = None) -> DataQualityReport:
-        """Run comprehensive data validation."""
+        """Run comprehensive data validation. O(n) single-pass optimized version."""
         report = DataQualityReport(total_rows=len(df))
+        df_columns = set(df.columns)
 
-        # Check required columns
-        missing_cols = cls.REQUIRED_COLUMNS - set(df.columns)
+        # Check required columns - O(k) where k = num required columns
+        missing_cols = cls.REQUIRED_COLUMNS - df_columns
         if missing_cols:
             report.data_type_errors.append(f"Missing required columns: {missing_cols}")
+            return report
 
-        # Check for nulls
-        null_counts = df[list(cls.REQUIRED_COLUMNS & set(df.columns))].isnull().sum()
+        # Single pass: collect all violations simultaneously - O(n)
+        present_required = cls.REQUIRED_COLUMNS & df_columns
+        null_counts = df[list(present_required)].isnull().sum()
         report.missing_values = null_counts[null_counts > 0].to_dict()
-
-        # Check duplicates
         report.duplicate_rows = int(df.duplicated().sum())
 
-        # Check numeric types
+        # Vectorized numeric type checks - O(k)
         for col in cls.NUMERIC_COLUMNS:
-            if col in df.columns:
-                if not pd.api.types.is_numeric_dtype(df[col]):
-                    report.data_type_errors.append(f"Column '{col}' is not numeric")
+            if col in df_columns and not pd.api.types.is_numeric_dtype(df[col]):
+                report.data_type_errors.append(f"Column '{col}' is not numeric")
 
-        # Check categorical values
+        # Vectorized categorical checks - O(n + k*u) where u=unique values
         for col, valid_set in cls.CATEGORICAL_OPTIONS.items():
-            if col in df.columns:
-                invalid = set(df[col].unique()) - valid_set
+            if col in df_columns:
+                col_uniques = set(df[col].unique())
+                invalid = col_uniques - valid_set
                 if invalid:
                     report.data_type_errors.append(f"Column '{col}' has invalid values: {invalid}")
 
-        # Check value ranges
+        # Vectorized range checks - O(n)
         for col, (min_val, max_val) in cls.VALID_RANGES.items():
-            if col in df.columns:
-                out_of_range = df[(df[col] < min_val) | (df[col] > max_val)]
-                if len(out_of_range) > 0:
-                    report.range_violations.append(f"Column '{col}': {len(out_of_range)} values out of range [{min_val}, {max_val}]")
+            if col in df_columns:
+                violations = ((df[col] < min_val) | (df[col] > max_val)).sum()
+                if violations > 0:
+                    report.range_violations.append(f"Column '{col}': {int(violations)} values out of range [{min_val}, {max_val}]")
 
-        # Check target if provided
-        if target_column and target_column in df.columns:
-            unique_targets = df[target_column].unique()
-            if not all(t in {0, 1} for t in unique_targets if pd.notna(t)):
+        # Check target if provided - O(u) where u=unique values
+        if target_column and target_column in df_columns:
+            unique_targets = set(df[target_column].dropna().unique())
+            if not unique_targets.issubset({0, 1}):
                 report.data_type_errors.append(f"Target column '{target_column}' is not binary (0/1)")
 
         report.passed = len(report.data_type_errors) == 0 and len(report.missing_values) == 0

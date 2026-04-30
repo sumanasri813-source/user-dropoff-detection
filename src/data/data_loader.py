@@ -39,6 +39,7 @@ class DataLoadResult:
 
 
 def _assert_columns(df: pd.DataFrame, required: Iterable[str]) -> None:
+    """Validate required columns exist. O(k) where k=number of required columns."""
     missing = sorted(set(required) - set(df.columns))
     if missing:
         raise ValueError(f"Missing required columns: {missing}")

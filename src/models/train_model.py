@@ -36,6 +36,7 @@ def _load_random_seed(default_seed: int = 42) -> int:
 
 
 def _infer_feature_types(df: pd.DataFrame) -> Tuple[List[str], List[str]]:
+    """Infer numeric vs categorical features. O(k) where k=number of columns."""
     feature_df = df.drop(columns=[TARGET_COLUMN]).copy()
     numeric_features = feature_df.select_dtypes(include=["number"]).columns.tolist()
     categorical_features = [c for c in feature_df.columns if c not in numeric_features]
@@ -108,6 +109,7 @@ def _evaluate_pipeline(pipeline: Pipeline, X_test: pd.DataFrame, y_test: pd.Seri
 
 
 def train_model(data_path: str = "data/processed/model_data.csv") -> Dict[str, object]:
+    """Train multiple model candidates and persist the best. O(m*n*f) where m=models, n=samples, f=features."""
     random_seed = _load_random_seed()
     
     if logger:

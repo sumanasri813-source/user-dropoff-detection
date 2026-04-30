@@ -1,0 +1,318 @@
+{
+  "info": {
+    "name": "User Dropoff Detection API",
+    "description": "API testing collection for user dropoff prediction system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Response has health status\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('status');",
+              "    pm.expect(jsonData.status).to.be.oneOf(['healthy', 'degraded', 'unhealthy']);",
+              "});",
+              "pm.test(\"Model is loaded\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.model_status).to.equal('loaded');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/health",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "5000",
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Single Prediction - Low Risk",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Response has prediction\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('prediction');",
+              "    pm.expect(jsonData).to.have.property('probability');",
+              "    pm.expect(jsonData).to.have.property('risk_level');",
+              "});",
+              "pm.test(\"Risk level is low\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.risk_level).to.equal('low');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "dev-local-key"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"days_signup_age\": 500,\n  \"recency_days\": 5,\n  \"frequency_total\": 100,\n  \"session_duration_avg\": 45.0,\n  \"feature_count_used\": 14,\n  \"device_type\": \"desktop\",\n  \"os_type\": \"windows\",\n  \"user_segment\": \"premium\",\n  \"region\": \"north\",\n  \"user_id\": 1001\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/predict",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "5000",
+          "path": ["predict"]
+        }
+      }
+    },
+    {
+      "name": "Single Prediction - High Risk",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Risk level is high\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.risk_level).to.equal('high');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "dev-local-key"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"days_signup_age\": 45,\n  \"recency_days\": 100,\n  \"frequency_total\": 5,\n  \"session_duration_avg\": 2.0,\n  \"feature_count_used\": 1,\n  \"device_type\": \"mobile\",\n  \"os_type\": \"android\",\n  \"user_segment\": \"free\",\n  \"region\": \"south\",\n  \"user_id\": 2001\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/predict",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "5000",
+          "path": ["predict"]
+        }
+      }
+    },
+    {
+      "name": "Batch Prediction",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Response is array\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.be.an('array');",
+              "    pm.expect(jsonData.length).to.equal(3);",
+              "});",
+              "pm.test(\"All predictions have required fields\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    jsonData.forEach(function(pred) {",
+              "        pm.expect(pred).to.have.property('prediction');",
+              "        pm.expect(pred).to.have.property('probability');",
+              "        pm.expect(pred).to.have.property('risk_level');",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "dev-local-key"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"predictions\": [\n    {\n      \"days_signup_age\": 500,\n      \"recency_days\": 5,\n      \"frequency_total\": 100,\n      \"session_duration_avg\": 45.0,\n      \"feature_count_used\": 14,\n      \"device_type\": \"desktop\",\n      \"os_type\": \"windows\",\n      \"user_segment\": \"premium\",\n      \"region\": \"north\"\n    },\n    {\n      \"days_signup_age\": 45,\n      \"recency_days\": 100,\n      \"frequency_total\": 5,\n      \"session_duration_avg\": 2.0,\n      \"feature_count_used\": 1,\n      \"device_type\": \"mobile\",\n      \"os_type\": \"android\",\n      \"user_segment\": \"free\",\n      \"region\": \"south\"\n    },\n    {\n      \"days_signup_age\": 200,\n      \"recency_days\": 30,\n      \"frequency_total\": 50,\n      \"session_duration_avg\": 20.0,\n      \"feature_count_used\": 8,\n      \"device_type\": \"tablet\",\n      \"os_type\": \"ios\",\n      \"user_segment\": \"trial\",\n      \"region\": \"east\"\n    }\n  ],\n  \"return_probabilities\": true\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/predict-batch",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "5000",
+          "path": ["predict-batch"]
+        }
+      }
+    },
+    {
+      "name": "Monitoring Metrics",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Response has metrics\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('api_requests_total');",
+              "    pm.expect(jsonData).to.have.property('uptime_seconds');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/monitor",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "5000",
+          "path": ["monitor"]
+        }
+      }
+    },
+    {
+      "name": "Validation Error - Missing Field",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "pm.test(\"Error message is present\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('error');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "dev-local-key"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"days_signup_age\": 500,\n  \"recency_days\": 5\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/predict",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "5000",
+          "path": ["predict"]
+        }
+      }
+    },
+    {
+      "name": "Validation Error - Invalid Value",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "pm.test(\"Error specifies validation issue\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.include('validation');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-API-Key",
+            "value": "dev-local-key"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"days_signup_age\": 1000,\n  \"recency_days\": 5,\n  \"frequency_total\": 100,\n  \"session_duration_avg\": 45.0,\n  \"feature_count_used\": 14,\n  \"device_type\": \"desktop\",\n  \"os_type\": \"windows\",\n  \"user_segment\": \"premium\",\n  \"region\": \"north\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/predict",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "5000",
+          "path": ["predict"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5000",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "dev-local-key",
+      "type": "string"
+    }
+  ]
+}

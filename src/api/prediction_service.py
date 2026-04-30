@@ -121,18 +121,23 @@ def payload_to_dataframe(payload: Dict[str, Any]) -> pd.DataFrame:
 
 
 def _align_features_to_model(model: Any, df: pd.DataFrame) -> pd.DataFrame:
-    expected_cols_raw = list(getattr(model, "feature_names_in_", []))
-    expected_cols = [str(c) for c in expected_cols_raw]
-    if not expected_cols:
+    """Align features to model expectations. O(n) optimized using set operations."""
+    expected_cols_raw = getattr(model, "feature_names_in_", [])
+    if not len(expected_cols_raw):
         return df
 
+    expected_cols = [str(c) for c in expected_cols_raw]
+    expected_set = set(expected_cols)
+    df_cols_set = set(df.columns)
+    
+    # Set difference for missing columns - O(k) instead of O(n*k) individual checks
+    missing_cols = expected_set - df_cols_set
     aligned = df.copy()
-    for col in expected_cols:
-        if col not in aligned.columns:
+    if missing_cols:
+        for col in missing_cols:
             aligned[col] = 0.0
-
-    out_df = aligned.loc[:, expected_cols]
-    return cast(pd.DataFrame, out_df)
+    
+    return cast(pd.DataFrame, aligned.loc[:, expected_cols])
 
 
 def predict_one(

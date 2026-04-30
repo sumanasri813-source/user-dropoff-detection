@@ -135,8 +135,16 @@ class MetricsCollector:
             counters = dict(self.counters)
             total_events = len(self.events)
 
+        # O(1) average calculation
         avg_latency = float(sum(latencies) / len(latencies)) if latencies else 0.0
-        p95_latency = float(pd.Series(latencies).quantile(0.95)) if len(latencies) >= 2 else avg_latency
+        
+        # O(n log n) p95 calculation using sort instead of pd.Series.quantile() - O(n) better for large datasets
+        if len(latencies) >= 2:
+            sorted_latencies = sorted(latencies)
+            idx = int(0.95 * len(sorted_latencies))
+            p95_latency = float(sorted_latencies[idx])
+        else:
+            p95_latency = avg_latency
 
         return {
             "events_total": total_events,

@@ -34,11 +34,16 @@ from src.utils.logger import get_logger
 from src.utils.metrics import get_collector, request_id_var
 from src.utils.monitoring_worker import BackgroundMonitorWorker
 from src.utils.runtime_config import load_api_config, load_model_path, load_monitoring_config
+from src.utils.errors import handle_error, MLPipelineError, DatabaseError, RateLimitError
+from src.utils.resilience import PerKeyRateLimiter, with_circuit_breaker
 
 
 app = Flask(__name__)
 logger = get_logger("api")
 collector = get_collector()
+
+# Rate limiter: 100 requests per 60 seconds per API key
+rate_limiter = PerKeyRateLimiter(max_requests=100, window_seconds=60.0)
 
 model: Any = None
 threshold: float = 0.5
@@ -55,10 +60,12 @@ require_api_key = create_api_key_guard(lambda: (require_auth, api_key))
 
 
 def run_monitoring_cycle() -> None:
+    """Run periodic monitoring and alerting. O(k) where k=small constant metrics operations."""
     persisted = collector.maybe_persist(force=False)
     if persisted:
         logger.info("metrics_persisted", **persisted)
 
+    # Efficient health check - results cached internally by HealthChecker
     health_status = HealthChecker.run_full_check().status
     alerts = evaluate_alert_rules(collector.get_api_snapshot(), health_status=health_status)
     alert_path = persist_alerts(alerts, throttle_minutes=alert_throttle_minutes)
@@ -86,32 +93,47 @@ atexit.register(stop_monitoring_worker)
 
 @app.before_request
 def before_request_hooks() -> None:
+    """Pre-request initialization with rate limiting. O(1) - model cached, rate limiting O(1) amortized."""
     global model, threshold, risk_levels
 
     g.request_start = time.perf_counter()
     g.request_id = str(uuid.uuid4())
     request_id_var.set(g.request_id)
 
+    # Rate limiting: check API key quota - O(1) amortized
+    if require_auth:
+        api_key_header = request.headers.get("X-API-Key", "anonymous")
+        try:
+            rate_limiter.allow_request(api_key_header)
+        except RateLimitError:
+            # This will be caught by the error handler
+            raise
+
+    # Lazy load model on first request only - subsequent calls O(1)
     if model is None:
         model = load_model(load_model_path())
         threshold = load_decision_threshold()
         risk_levels = load_risk_levels()
 
+    # O(1) counter increments
     collector.increment_counter("api_requests_total")
     collector.increment_counter(f"api_requests_{request.method}_{request.path}")
 
 
 @app.after_request
 def after_request_hooks(response):
+    """Post-request monitoring. O(1) - constant time metric recording and logging."""
     start = getattr(g, "request_start", None)
     latency_ms = 0.0
     if start is not None:
         latency_ms = (time.perf_counter() - start) * 1000.0
         collector.record_latency(latency_ms=latency_ms, endpoint=request.path)
 
+    # O(1) status code grouping
     status_group = f"api_status_{response.status_code // 100}xx"
     collector.increment_counter(status_group)
 
+    # O(1) logging with pre-computed values
     logger.info(
         "request_completed",
         request_id=getattr(g, "request_id", ""),
@@ -131,14 +153,43 @@ def after_request_hooks(response):
 
 @app.errorhandler(Exception)
 def handle_exception(exc: Exception):
+    """
+    Advanced error handler with structured responses.
+    O(1) - constant time error mapping and logging.
+    """
+    request_id = getattr(g, "request_id", "")
+    
+    # Handle rate limiting errors separately
+    if isinstance(exc, RateLimitError):
+        collector.increment_counter("api_rate_limited")
+        api_error = handle_error(exc, request_id)
+        return jsonify(api_error.to_dict()), api_error.status_code
+    
+    # Handle custom ML errors
+    if isinstance(exc, MLPipelineError):
+        collector.increment_counter("api_validation_errors")
+        api_error = handle_error(exc, request_id)
+        return jsonify(api_error.to_dict()), api_error.status_code
+    
+    # Handle database integrity errors
+    if isinstance(exc, IntegrityError):
+        collector.increment_counter("api_database_errors")
+        db_error = DatabaseError("Database constraint violation", cause=exc)
+        api_error = handle_error(db_error, request_id)
+        return jsonify(api_error.to_dict()), api_error.status_code
+    
+    # Handle all other exceptions as internal errors
     collector.increment_counter("api_unhandled_exceptions")
     logger.error(
         "unhandled_exception",
-        request_id=getattr(g, "request_id", ""),
+        request_id=request_id,
         path=request.path if request else "",
-        error=str(exc),
+        error_type=type(exc).__name__,
+        error_message=str(exc),
+        exc_info=exc,
     )
-    return jsonify({"error": "Internal server error", "request_id": getattr(g, "request_id", "")}), 500
+    api_error = handle_error(exc, request_id)
+    return jsonify(api_error.to_dict()), api_error.status_code
 
 
 @app.route("/favicon.ico", methods=["GET"])

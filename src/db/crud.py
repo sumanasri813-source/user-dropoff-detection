@@ -58,10 +58,12 @@ def list_users(
     offset: int = 0,
     user_segment: str | None = None,
 ) -> List[Dict[str, Any]]:
+    """List users with optimized filtering. O(log n + k) with index on user_segment and id."""
     query = session.query(UserProfile)
     if user_segment:
         query = query.filter(UserProfile.user_segment == str(user_segment))
 
+    # Index-based sorting on primary key for stable pagination
     rows = query.order_by(UserProfile.id.desc()).offset(offset).limit(limit).all()
     return [_user_to_dict(row) for row in rows]
 
@@ -134,11 +136,13 @@ def list_predictions(
     risk_level: str | None = None,
     min_probability: float | None = None,
 ) -> List[Dict[str, Any]]:
+    """List predictions with optimized filtering. O(log n + k) with indexes on risk_level, created_at, and dropoff_probability."""
     query = session.query(PredictionRecord)
     if risk_level:
         query = query.filter(PredictionRecord.risk_level == str(risk_level))
     if min_probability is not None:
         query = query.filter(PredictionRecord.dropoff_probability >= float(min_probability))
 
+    # Index-based sorting on primary key for stable pagination - O(log n)
     rows = query.order_by(PredictionRecord.id.desc()).offset(offset).limit(limit).all()
     return [_prediction_to_dict(row) for row in rows]

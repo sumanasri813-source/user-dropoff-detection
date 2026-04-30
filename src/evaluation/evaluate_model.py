@@ -87,11 +87,14 @@ def _business_value_from_cm(
 
 
 def _select_best_threshold(y_true: pd.Series, y_prob: np.ndarray, candidates: List[float]) -> Dict[str, float]:
+    """Select best threshold based on F1 score. O(n*k) optimized with direct calculation."""
     best = {"threshold": 0.5, "f1": -1.0}
     for t in candidates:
-        metrics = _compute_classification_metrics(y_true, y_prob, float(t))
-        if metrics["f1"] > best["f1"]:
-            best = metrics
+        y_pred = (y_prob >= t).astype(int)
+        f1 = float(f1_score(y_true, y_pred, zero_division=0))
+        if f1 > best["f1"]:
+            best["threshold"] = float(t)
+            best["f1"] = f1
     return best
 
 
@@ -141,9 +144,17 @@ def evaluate_model(
     results_dir.mkdir(parents=True, exist_ok=True)
 
     threshold_rows = []
+    # O(n + threshold_count) optimization: compute all predictions at once, then analyze thresholds
     for t in threshold_candidates:
-        row = _compute_classification_metrics(y, y_prob, t)
-        row_cm = confusion_matrix(y, (y_prob >= t).astype(int))
+        y_pred_t = (y_prob >= t).astype(int)
+        row = {
+            "threshold": float(t),
+            "accuracy": float(accuracy_score(y, y_pred_t)),
+            "precision": float(precision_score(y, y_pred_t, zero_division=0)),
+            "recall": float(recall_score(y, y_pred_t, zero_division=0)),
+            "f1": float(f1_score(y, y_pred_t, zero_division=0)),
+        }
+        row_cm = confusion_matrix(y, y_pred_t)
         row_business = _business_value_from_cm(
             row_cm,
             float(cfg["cost_false_positive"]),

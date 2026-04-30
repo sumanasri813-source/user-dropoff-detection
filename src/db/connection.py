@@ -54,16 +54,26 @@ def get_database_url() -> str:
 
 @lru_cache(maxsize=1)
 def get_engine() -> Engine:
+    """Create SQLAlchemy engine with optimized connection pooling. O(1) due to caching."""
     db_cfg = _load_database_config()
     db_url = get_database_url()
     echo = bool(db_cfg.get("echo", False))
 
-    return create_engine(
-        db_url,
-        echo=echo,
-        pool_pre_ping=True,
-        future=True,
-    )
+    # Connection pool optimization: pool_size=10, max_overflow=20 for production databases only
+    # SQLite doesn't benefit from connection pooling
+    engine_kwargs = {
+        "echo": echo,
+        "pool_pre_ping": True,
+        "future": True,
+    }
+    
+    # Only add pool parameters for non-SQLite databases
+    if not db_url.startswith("sqlite://"):
+        engine_kwargs["pool_size"] = 10
+        engine_kwargs["max_overflow"] = 20
+        engine_kwargs["pool_recycle"] = 3600
+
+    return create_engine(db_url, **engine_kwargs)
 
 
 @lru_cache(maxsize=1)

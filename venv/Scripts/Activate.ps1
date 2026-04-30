@@ -19,11 +19,10 @@ default, this prompt is the name of the virtual environment folder (VenvDir)
 surrounded by parentheses and followed by a single space (ie. '(.venv) ').
 
 .Example
-Activate.ps1cd C:\Users\Sumana Sri\OneDrive\Desktop\project\user-dropoff-detectioncd C:\Users\Sumana Sri\OneDrive\Desktop\project\user-dropoff-detectioncd C:\Users\Sumana Sri\OneDrive\Desktop\project\user-dropoff-detectioncd C:\Users\Sumana Sri\OneDrive\Desktop\project\user-dropoff-detectioncd C:\Users\Sumana Sri\OneDrive\Desktop\project\user-dropoff-detection
-venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txttivates the Python virtual environment that contains the Activate.ps1 script.
+Activate.ps1
+Activates the Python virtual environment that contains the Activate.ps1 script.
 
-.Example.\venv\Scripts\Activate.ps1
+.Example
 Activate.ps1 -Verbose
 Activates the Python virtual environment that contains the Activate.ps1 script,
 and shows extra information about the activation as it executes.
