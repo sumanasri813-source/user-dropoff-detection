@@ -54,3 +54,4 @@
 {"timestamp": "2026-04-30T09:57:02.175581+00:00", "level": "INFO", "logger": "monitoring_worker", "message": "worker_started", "context": {"worker_name": "monitoring-worker", "interval_seconds": 30.0}, "extra": {"taskName": null}}
 {"timestamp": "2026-04-30T10:27:33.465929+00:00", "level": "INFO", "logger": "monitoring_worker", "message": "worker_started", "context": {"worker_name": "monitoring-worker", "interval_seconds": 30.0}, "extra": {"taskName": null}}
 {"timestamp": "2026-04-30T10:31:41.557695+00:00", "level": "INFO", "logger": "monitoring_worker", "message": "worker_started", "context": {"worker_name": "monitoring-worker", "interval_seconds": 30.0}, "extra": {"taskName": null}}
+{"timestamp": "2026-05-01T02:12:12.551095+00:00", "level": "INFO", "logger": "monitoring_worker", "message": "worker_started", "context": {"worker_name": "monitoring-worker", "interval_seconds": 30.0}, "extra": {"taskName": null}}
