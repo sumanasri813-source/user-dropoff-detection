@@ -168,9 +168,6 @@ jobs:
     name: Deploy Dev
     runs-on: ubuntu-latest
     needs: [evaluate]
-    if: |
-      github.event_name == 'pull_request' ||
-      (github.ref_name != 'main' && github.ref_name != 'develop' && github.ref_name != 'detection' && github.event_name != 'pull_request')
     env:
       APP_ENV: dev
 
@@ -207,9 +204,6 @@ jobs:
     name: Deploy Staging
     runs-on: ubuntu-latest
     needs: [evaluate]
-    if: |
-      github.event_name == 'pull_request' ||
-      (github.event_name != 'pull_request' && (github.ref_name == 'develop' || github.ref_name == 'detection'))
     env:
       APP_ENV: staging
 
@@ -246,9 +240,6 @@ jobs:
     name: Deploy Production
     runs-on: ubuntu-latest
     needs: [evaluate]
-    if: |
-      github.event_name == 'pull_request' ||
-      (github.event_name != 'pull_request' && (github.ref_name == 'main' || github.ref_name == 'detection'))
     env:
       APP_ENV: prod
 
