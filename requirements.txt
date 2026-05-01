@@ -16,12 +16,11 @@ requests==2.32.3
 pydantic==2.8.0
 
 # Database & ORM
-sqlalchemy==2.1.0
+sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
 pymysql==1.1.1
 
 # Logging & Monitoring
-python-logging-loki==0.3.2
 prometheus-client==0.21.0
 
 # Utilities & Configuration
