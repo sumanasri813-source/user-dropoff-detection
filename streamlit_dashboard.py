@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import json
 import os
+import time
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, cast
 
 import pandas as pd
 import plotly.express as px
@@ -25,7 +27,7 @@ import streamlit as st
 # ============================================================================
 
 st.set_page_config(
-    page_title="AI Drop-Off Command Center",
+    page_title="Drop-Off Command Center",
     page_icon=":chart_with_downwards_trend:",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -426,6 +428,45 @@ st.markdown(
         font-size: 0.92rem;
     }
 
+    .pipeline-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .pipeline-chip {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: linear-gradient(180deg, #ffffff, #f8fcff);
+        box-shadow: 0 8px 22px rgba(15,23,42,0.05);
+    }
+
+    .pipeline-chip span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .pipeline-chip strong {
+        color: var(--ink);
+        font-size: 1rem;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .pipeline-chip p {
+        color: var(--muted);
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+
     .flow {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -517,6 +558,7 @@ st.markdown(
         padding: 16px;
         box-shadow: 0 12px 30px rgba(15,23,42,0.06);
         min-height: 100%;
+        overflow: hidden;
     }
 
     .visual-title {
@@ -535,17 +577,85 @@ st.markdown(
     .event-stream {
         display: grid;
         gap: 10px;
+        max-height: 460px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 4px;
+    }
+
+    .stream-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .topbar-actions .mini-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 11px;
+        background: #f8fcff;
+        color: var(--ink);
+        font-size: 0.82rem;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .topbar-actions .mini-pill strong {
+        font-weight: 850;
+        color: var(--ink);
+    }
+
+    .stream-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.76rem;
+        color: #0f766e;
+        background: #ecfeff;
+        border: 1px solid #bae6fd;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-weight: 700;
+    }
+
+    .stream-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #0f766e;
+        box-shadow: 0 0 0 0 rgba(15,118,110,0.45);
+        animation: streamPulse 1.8s infinite;
+    }
+
+    @keyframes streamPulse {
+        0% {box-shadow: 0 0 0 0 rgba(15,118,110,0.45);}
+        70% {box-shadow: 0 0 0 8px rgba(15,118,110,0);}
+        100% {box-shadow: 0 0 0 0 rgba(15,118,110,0);}
     }
 
     .stream-item {
         display: grid;
-        grid-template-columns: 42px 1fr auto;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
         align-items: center;
         gap: 10px;
         border: 1px solid var(--line);
         border-radius: 12px;
         padding: 10px;
         background: linear-gradient(180deg, #ffffff, #f8fcff);
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .stream-item:hover {
+        transform: translateY(-1px);
+        border-color: #c8def0;
+        box-shadow: 0 10px 22px rgba(37,99,235,0.08);
     }
 
     .stream-icon {
@@ -563,6 +673,11 @@ st.markdown(
         display: block;
         color: var(--ink);
         font-size: 0.92rem;
+        margin-bottom: 2px;
+    }
+
+    .stream-text {
+        min-width: 0;
     }
 
     .stream-text span,
@@ -571,12 +686,36 @@ st.markdown(
         font-size: 0.78rem;
     }
 
+    .stream-meta {
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        color: #6b7280;
+        font-size: 0.72rem;
+    }
+
     .stream-tag {
         border-radius: 999px;
         padding: 5px 8px;
         background: #edf8ff;
         border: 1px solid #d4ebf7;
         white-space: nowrap;
+        font-weight: 700;
+    }
+
+    .stream-tag.session {background: #ecfeff; border-color: #bae6fd; color: #0e7490;}
+    .stream-tag.interest {background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8;}
+    .stream-tag.intent {background: #f5f3ff; border-color: #ddd6fe; color: #6d28d9;}
+    .stream-tag.purchase {background: #fff7ed; border-color: #fed7aa; color: #c2410c;}
+    .stream-tag.conversion {background: #f0fdf4; border-color: #bbf7d0; color: #15803d;}
+    .stream-tag.retention {background: #fef2f2; border-color: #fecaca; color: #b91c1c;}
+
+    .stream-legend {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.72rem;
     }
 
     .risk-board {
@@ -780,6 +919,16 @@ st.markdown(
 
         .hero-copy h1 {font-size: 1.9rem;}
         .signal-foot {grid-template-columns: 1fr;}
+
+        .stream-item {
+            grid-template-columns: 38px 1fr;
+            gap: 9px;
+        }
+
+        .stream-tag {
+            grid-column: 2;
+            justify-self: start;
+        }
     }
 </style>
 """,
@@ -922,6 +1071,228 @@ def call_api(
         return False, None, str(exc)
 
 
+@st.cache_data(ttl=3)
+def fetch_recent_predictions(limit: int = 6) -> List[Dict[str, Any]]:
+    success, result, _ = call_api(f"/predictions?limit={max(1, min(1000, limit))}")
+    if not success or not isinstance(result, dict):
+        return []
+    rows = result.get("predictions", [])
+    if isinstance(rows, list):
+        return rows
+    return []
+
+
+def _parse_payload_json(payload_json: str | None) -> Dict[str, Any]:
+    if not payload_json:
+        return {}
+    try:
+        parsed = json.loads(payload_json)
+        return parsed if isinstance(parsed, dict) else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+def _format_event_clock(created_at: str | None) -> str:
+    if not created_at:
+        return "unknown"
+    try:
+        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        return dt.strftime("%H:%M:%S")
+    except ValueError:
+        return "unknown"
+
+
+def _phase_from_features(payload: Dict[str, Any]) -> str:
+    feature_count = float(payload.get("feature_count_used", 0) or 0)
+    if feature_count <= 2:
+        return "session"
+    if feature_count <= 4:
+        return "interest"
+    if feature_count <= 6:
+        return "intent"
+    if feature_count <= 8:
+        return "purchase"
+    if feature_count <= 10:
+        return "conversion"
+    return "retention"
+
+
+def _name_surface_from_phase(phase: str) -> Tuple[str, str]:
+    mapping = {
+        "session": ("login", "Session start"),
+        "interest": ("product_viewed", "Product page"),
+        "intent": ("search", "Search intent"),
+        "purchase": ("add_to_cart", "Cart interaction"),
+        "conversion": ("checkout_started", "Checkout started"),
+        "retention": ("order_completed", "Order completion"),
+    }
+    return mapping.get(phase, ("activity", "User activity"))
+
+
+def _format_live_value(value: Any) -> str:
+    if value is None:
+        return "unknown"
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return f"{value:.2f}"
+    text = str(value).strip()
+    return text or "unknown"
+
+
+def _build_live_feature_sources(payload: Dict[str, Any], recent_count: int) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "Feature": "days_signup_age",
+                "Source": "User signup record",
+                "Live Example": _format_live_value(payload.get("days_signup_age")),
+                "Used By": "Risk model",
+            },
+            {
+                "Feature": "recency_days",
+                "Source": "Latest event timestamp",
+                "Live Example": _format_live_value(payload.get("recency_days")),
+                "Used By": "Risk model",
+            },
+            {
+                "Feature": "frequency_total",
+                "Source": "Session and login history",
+                "Live Example": _format_live_value(payload.get("frequency_total")),
+                "Used By": "Risk model",
+            },
+            {
+                "Feature": "session_duration_avg",
+                "Source": "Session timing",
+                "Live Example": _format_live_value(payload.get("session_duration_avg")),
+                "Used By": "Risk model",
+            },
+            {
+                "Feature": "feature_count_used",
+                "Source": "Recent behavior breadth",
+                "Live Example": _format_live_value(payload.get("feature_count_used")),
+                "Used By": f"{recent_count} recent predictions",
+            },
+            {
+                "Feature": "device_type / os_type",
+                "Source": "Client metadata",
+                "Live Example": " / ".join(
+                    [
+                        _format_live_value(payload.get("device_type")),
+                        _format_live_value(payload.get("os_type")),
+                    ]
+                ),
+                "Used By": "Segmentation",
+            },
+            {
+                "Feature": "user_segment / region",
+                "Source": "Profile and geography",
+                "Live Example": " / ".join(
+                    [
+                        _format_live_value(payload.get("user_segment")),
+                        _format_live_value(payload.get("region")),
+                    ]
+                ),
+                "Used By": "Targeting",
+            },
+        ]
+    )
+
+
+def _build_empty_state_chart(title: str, message: str) -> go.Figure:
+    fig = go.Figure()
+    fig.add_annotation(
+        text=message,
+        x=0.5,
+        y=0.5,
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+        font=dict(size=14, color="#66758a"),
+    )
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+    fig.update_layout(
+        title=title,
+        height=305,
+        margin=dict(l=20, r=20, t=50, b=20),
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+    )
+    return chart_layout(fig, 305)
+
+
+def _parse_created_at(raw_value: Any) -> datetime | None:
+    if raw_value is None:
+        return None
+    raw_text = str(raw_value).strip()
+    if not raw_text:
+        return None
+    try:
+        return datetime.fromisoformat(raw_text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def build_live_event_rows(predictions: List[Dict[str, Any]]) -> List[str]:
+    if not predictions:
+        return []
+
+    rows: List[str] = []
+    for idx, prediction in enumerate(reversed(predictions), start=1):
+        payload = _parse_payload_json(str(prediction.get("payload_json", "")))
+        phase = _phase_from_features(payload)
+        name, surface = _name_surface_from_phase(phase)
+        clock = _format_event_clock(prediction.get("created_at"))
+        actor = " / ".join(
+            [
+                str(payload.get("device_type", "unknown")).lower(),
+                str(payload.get("user_segment", "unknown")).lower(),
+                str(payload.get("region", "unknown")).lower(),
+            ]
+        )
+
+        rows.append(
+            f'<div class="stream-item"><div class="stream-icon">{idx:02d}</div><div class="stream-text"><strong>{name}</strong><span>{surface}</span><div class="stream-meta"><span>{clock}</span><span>{actor}</span></div></div><div class="stream-tag {phase}">{phase}</div></div>'
+        )
+
+    return rows
+
+
+@st.cache_data(ttl=3)
+def load_live_prediction_frame(limit: int = 400) -> pd.DataFrame:
+    predictions = fetch_recent_predictions(limit=limit)
+    rows: List[Dict[str, Any]] = []
+
+    for prediction in predictions:
+        payload = _parse_payload_json(str(prediction.get("payload_json", "")))
+        if not payload:
+            continue
+
+        created_at = _parse_created_at(prediction.get("created_at"))
+        if created_at is None:
+            continue
+
+        phase = _phase_from_features(payload)
+        region = str(payload.get("region", "unknown")).strip().title()
+        risk_level = str(prediction.get("risk_level", "unknown")).strip().lower()
+
+        rows.append(
+            {
+                "created_at": created_at,
+                "phase": phase,
+                "region": region or "Unknown",
+                "risk_level": risk_level,
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+    return df.dropna(subset=["created_at"])
+
+
 def profile_to_payload(profile_data: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "days_signup_age": profile_data["days_since_signup"],
@@ -981,7 +1352,7 @@ def uploaded_rows_to_records(df: pd.DataFrame) -> List[Dict[str, Any]]:
     missing = [col for col in required if col not in renamed.columns]
     if missing:
         raise ValueError(f"Missing required columns: {', '.join(missing)}")
-    return renamed.loc[:, required].to_dict(orient="records")
+    return cast(List[Dict[str, Any]], renamed.loc[:, required].to_dict(orient="records"))
 
 
 # ============================================================================
@@ -1148,14 +1519,39 @@ def build_segment_risk_donut() -> go.Figure:
 
 
 def build_event_volume_chart() -> go.Figure:
-    event_df = pd.DataFrame(
-        {
-            "Hour": ["00", "04", "08", "12", "16", "20"],
-            "Product Views": [1800, 1200, 4200, 7600, 9200, 6800],
-            "Cart Events": [420, 260, 1100, 2400, 3100, 2200],
-            "Checkout Events": [90, 80, 420, 960, 1280, 780],
+    live_df = load_live_prediction_frame(limit=800)
+    if not live_df.empty:
+        bucket_map = {
+            "session": "Product Views",
+            "interest": "Product Views",
+            "intent": "Product Views",
+            "purchase": "Cart Events",
+            "conversion": "Checkout Events",
+            "retention": "Checkout Events",
         }
-    )
+        prepared = live_df.copy()
+        prepared["event_bucket"] = prepared["phase"].map(bucket_map).fillna("Product Views")
+        prepared["hour_dt"] = prepared["created_at"].dt.floor("h")
+
+        grouped = prepared.groupby(["hour_dt", "event_bucket"], as_index=False).size()
+        pivoted = grouped.pivot(index="hour_dt", columns="event_bucket", values="size").fillna(0)
+        latest_hour = prepared["hour_dt"].max()
+        start_hour = latest_hour - pd.Timedelta(hours=11)
+        full_hours = pd.date_range(start=start_hour, end=latest_hour, freq="h")
+        pivoted = pivoted.reindex(full_hours, fill_value=0)
+        pivoted.index.name = "hour_dt"
+
+        for col in ["Product Views", "Cart Events", "Checkout Events"]:
+            if col not in pivoted.columns:
+                pivoted[col] = 0
+
+        pivoted = pivoted[["Product Views", "Cart Events", "Checkout Events"]].sort_index().tail(12)
+        event_df = pivoted.reset_index()
+        event_df["Hour"] = event_df["hour_dt"].dt.strftime("%H:%M")
+        event_df = event_df.drop(columns=["hour_dt"])
+    else:
+        return _build_empty_state_chart("Event Volume", "Waiting for live prediction events to populate hourly volume.")
+
     fig = px.area(
         event_df,
         x="Hour",
@@ -1167,16 +1563,23 @@ def build_event_volume_chart() -> go.Figure:
 
 
 def build_region_heatmap() -> go.Figure:
-    region_df = pd.DataFrame(
-        [
-            ["North", 18, 28, 54],
-            ["South", 24, 33, 43],
-            ["East", 30, 31, 39],
-            ["West", 21, 36, 43],
-        ],
-        columns=["Region", "Low", "Medium", "High"],
-    )
-    heat_df = region_df.set_index("Region")
+    live_df = load_live_prediction_frame(limit=800)
+    if not live_df.empty:
+        grouped = live_df.groupby(["region", "risk_level"], as_index=False).size()
+        pivoted = grouped.pivot(index="region", columns="risk_level", values="size").fillna(0)
+
+        for col in ["low", "medium", "high"]:
+            if col not in pivoted.columns:
+                pivoted[col] = 0
+
+        pivoted = pivoted[["low", "medium", "high"]]
+        totals = pivoted.sum(axis=1).replace(0, 1)
+        heat_df = (pivoted.div(totals, axis=0) * 100).round(1)
+        heat_df.columns = ["Low", "Medium", "High"]
+        heat_df = heat_df.sort_index()
+    else:
+        return _build_empty_state_chart("Region Risk Heatmap", "Waiting for live prediction records to populate the geographic risk view.")
+
     fig = px.imshow(
         heat_df,
         text_auto=True,
@@ -1228,13 +1631,14 @@ st.markdown(
     f"""
     <div class="topbar">
         <div class="brand">
-            <div class="brand-mark">AI</div>
+            <div class="brand-mark">DD</div>
             <div>
                 <div class="brand-title">Drop-Off Detection</div>
                 <div class="brand-subtitle">Retention risk intelligence dashboard</div>
             </div>
         </div>
         <div class="topbar-actions">
+            <span class="mini-pill">Live feed <strong>{metric_value(metrics_blob, "predictions_total", 860):,.0f}</strong></span>
             <span class="api-pill"><span class="status-dot {status_class}"></span>{status_text}</span>
             <span class="nav-note">Model {metric_value(metrics_blob, "roc_auc", 0.9731):.3f} ROC-AUC</span>
         </div>
@@ -1277,7 +1681,7 @@ if page == "Command Center":
         st.markdown(
             """
             <div class="hero-copy">
-                <div class="eyebrow">AI-Driven Retention Intelligence</div>
+                <div class="eyebrow">Retention Intelligence</div>
                 <h1>Silent User Drop-Off Detection Command Center</h1>
                 <p>
                     A modern ML dashboard that converts behavioral signals into risk scores,
@@ -1303,22 +1707,22 @@ if page == "Command Center":
     st.markdown(
         """
         <div class="panel">
-            <div class="panel-title">Project Pipeline</div>
+            <div class="panel-title">Operational Pipeline</div>
             <div class="architecture-grid">
                 <div class="arch-tile">
                     <div class="arch-mark"></div>
-                    <strong>Event Tracking</strong>
-                    <span>Website records login, search, product, cart, checkout, and order activity.</span>
+                    <strong>Browser/App Events</strong>
+                    <span>Live clickstream and session activity entering the system.</span>
                 </div>
                 <div class="arch-tile">
                     <div class="arch-mark"></div>
-                    <strong>Feature Generation</strong>
+                    <strong>Feature Job</strong>
                     <span>Events become user-level features such as recency, frequency, and usage depth.</span>
                 </div>
                 <div class="arch-tile">
                     <div class="arch-mark"></div>
-                    <strong>Risk Dashboard</strong>
-                    <span>Predictions are stored and summarized for retention teams.</span>
+                    <strong>Prediction Store</strong>
+                    <span>API scores are stored and summarized for retention teams.</span>
                 </div>
             </div>
         </div>
@@ -1391,45 +1795,44 @@ elif page == "Production Tracking":
         unsafe_allow_html=True,
     )
 
-    p1, p2, p3, p4 = st.columns(4)
-    with p1:
-        render_kpi("Event Capture", "Auto", "Login, search, cart, checkout.", "blue")
-    with p2:
-        render_kpi("Feature Job", "Batch", "User-level behavior features.", "teal")
-    with p3:
-        render_kpi("ML Scoring", "API", "Real-time or scheduled scoring.", "green")
-    with p4:
-        render_kpi("Dashboard", "Insights", "Counts, filters, high-risk users.", "amber")
+    auto_refresh = st.toggle("Auto-refresh live tracking (6s)", value=False, key="prod_tracking_autorefresh")
+    if auto_refresh:
+        st.caption("Live mode enabled. Refreshing this page every 6 seconds.")
+
+    prediction_rows = fetch_recent_predictions(limit=6) if api_online else []
+    latest_prediction = prediction_rows[0] if prediction_rows else {}
+    latest_payload = _parse_payload_json(str(latest_prediction.get("payload_json", ""))) if latest_prediction else {}
+    live_frame = load_live_prediction_frame(limit=800) if api_online else pd.DataFrame()
+    live_total = int(len(live_frame)) if isinstance(live_frame, pd.DataFrame) else 0
+    live_regions = int(live_frame["region"].nunique()) if isinstance(live_frame, pd.DataFrame) and not live_frame.empty else 0
+    live_high_risk = int((live_frame["risk_level"] == "high").sum()) if isinstance(live_frame, pd.DataFrame) and not live_frame.empty else 0
+    live_high_share = (live_high_risk / live_total) if live_total else 0.0
 
     st.markdown(
-        """
+        f"""
         <div class="panel">
-            <div class="panel-title">Real Application Flow</div>
-            <div class="data-flow">
-                <div class="flow-node">
-                    <div class="node-mark"></div>
-                    <strong>Website</strong>
-                    <span>Clicks and sessions</span>
+            <div class="panel-title">Tracking Snapshot</div>
+            <div class="panel-copy">This card summarizes the live operating state without repeating the event stream below.</div>
+            <div class="tracking-snapshot">
+                <div class="snapshot-card">
+                    <span>Live Volume</span>
+                    <strong>{live_total:,}</strong>
+                    <p>Scored events in the current live window.</p>
                 </div>
-                <div class="flow-node">
-                    <div class="node-mark"></div>
-                    <strong>Events DB</strong>
-                    <span>User actions</span>
+                <div class="snapshot-card">
+                    <span>Region Coverage</span>
+                    <strong>{live_regions}</strong>
+                    <p>Distinct regions represented in live data.</p>
                 </div>
-                <div class="flow-node">
-                    <div class="node-mark"></div>
-                    <strong>Features</strong>
-                    <span>Aggregated signals</span>
+                <div class="snapshot-card">
+                    <span>High-Risk Share</span>
+                    <strong>{live_high_share:.0%}</strong>
+                    <p>Share of events currently marked high risk.</p>
                 </div>
-                <div class="flow-node">
-                    <div class="node-mark"></div>
-                    <strong>ML API</strong>
-                    <span>Risk prediction</span>
-                </div>
-                <div class="flow-node">
-                    <div class="node-mark"></div>
-                    <strong>Dashboard</strong>
-                    <span>Insights and action</span>
+                <div class="snapshot-card">
+                    <span>Latest State</span>
+                    <strong>{_format_live_value(latest_prediction.get("risk_level"))}</strong>
+                    <p>Most recent API prediction outcome.</p>
                 </div>
             </div>
         </div>
@@ -1437,40 +1840,140 @@ elif page == "Production Tracking":
         unsafe_allow_html=True,
     )
 
-    event_col, feature_col = st.columns([0.9, 1.1])
+    st.markdown(
+        """
+        <div class="panel">
+            <div class="panel-title">Pipeline Status</div>
+            <div class="panel-copy">The view runs on the live pipeline, with each stage mapped to the operating system behind the model.</div>
+            <div class="pipeline-strip">
+                <div class="pipeline-chip">
+                    <span>Event Capture</span>
+                    <strong>Auto</strong>
+                    <p>Login, search, cart, checkout.</p>
+                </div>
+                <div class="pipeline-chip">
+                    <span>Feature Job</span>
+                    <strong>Batch</strong>
+                    <p>User-level behavior features.</p>
+                </div>
+                <div class="pipeline-chip">
+                    <span>ML Scoring</span>
+                    <strong>API</strong>
+                    <p>Real-time or scheduled scoring.</p>
+                </div>
+                <div class="pipeline-chip">
+                    <span>Dashboard</span>
+                    <strong>Insights</strong>
+                    <p>Counts, filters, high-risk users.</p>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div class="panel">
+            <div class="panel-title">Live Application Flow</div>
+            <div class="panel-copy">This is the operational path from raw behavior to scored output and executive monitoring.</div>
+            <div class="data-flow">
+                <div class="flow-node">
+                    <div class="node-mark"></div>
+                    <strong>Browser Events</strong>
+                    <span>Clicks, sessions, and behavior signals</span>
+                </div>
+                <div class="flow-node">
+                    <div class="node-mark"></div>
+                    <strong>Features</strong>
+                    <span>Aggregated signals and user-level inputs</span>
+                </div>
+                <div class="flow-node">
+                    <div class="node-mark"></div>
+                    <strong>Scoring API</strong>
+                    <span>Risk prediction and classification</span>
+                </div>
+                <div class="flow-node">
+                    <div class="node-mark"></div>
+                    <strong>Prediction Store</strong>
+                    <span>Stored outputs for monitoring and analysis</span>
+                </div>
+                <div class="flow-node">
+                    <div class="node-mark"></div>
+                    <strong>Live Dashboard</strong>
+                    <span>Insights, monitoring, and action</span>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    event_col, feature_col = st.columns([1.0, 1.0])
     with event_col:
+        stream_rows = build_live_event_rows(prediction_rows)
+        stream_html = "".join(stream_rows)
+        stream_state = "LIVE" if stream_rows else "IDLE"
+        stream_copy = (
+            "Latest scored behaviors from the running API and prediction store."
+            if stream_rows
+            else "No recent prediction events yet. Start traffic to populate this stream."
+        )
+
+        if not stream_rows:
+            stream_rows = [
+                '<div class="stream-item"><div class="stream-icon">--</div><div class="stream-text"><strong>waiting_for_events</strong><span>Prediction records will appear here automatically</span><div class="stream-meta"><span>now</span><span>api / monitor</span></div></div><div class="stream-tag session">session</div></div>'
+            ]
+            stream_html = "".join(stream_rows)
+
+        st.markdown(
+            (
+                f'<div class="visual-card">'
+                f'<div class="stream-head">'
+                f'<div><div class="visual-title">Live Event Stream</div>'
+                f'<div class="visual-copy">{stream_copy}</div></div>'
+                f'<div class="stream-status"><span class="stream-dot"></span>{stream_state}</div>'
+                f'</div>'
+                f'<div class="event-stream">{stream_html}</div>'
+                f'<div class="stream-legend">Live event records are pulled from the API and summarized here without duplicating the snapshot metrics.</div>'
+                f'</div>'
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with feature_col:
         st.markdown(
             """
             <div class="visual-card">
-                <div class="visual-title">Live Event Stream</div>
-                <div class="visual-copy">Example events captured from a grocery application.</div>
-                <div class="event-stream">
-                    <div class="stream-item"><div class="stream-icon">01</div><div class="stream-text"><strong>login</strong><span>Login page</span></div><div class="stream-tag">session</div></div>
-                    <div class="stream-item"><div class="stream-icon">02</div><div class="stream-text"><strong>product_viewed</strong><span>Product page</span></div><div class="stream-tag">interest</div></div>
-                    <div class="stream-item"><div class="stream-icon">03</div><div class="stream-text"><strong>search</strong><span>Search bar</span></div><div class="stream-tag">intent</div></div>
-                    <div class="stream-item"><div class="stream-icon">04</div><div class="stream-text"><strong>add_to_cart</strong><span>Cart button</span></div><div class="stream-tag">purchase</div></div>
-                    <div class="stream-item"><div class="stream-icon">05</div><div class="stream-text"><strong>checkout_started</strong><span>Checkout page</span></div><div class="stream-tag">conversion</div></div>
-                    <div class="stream-item"><div class="stream-icon">06</div><div class="stream-text"><strong>order_completed</strong><span>Payment success</span></div><div class="stream-tag">retention</div></div>
+                <div class="visual-title">Live Feature Table</div>
+                <div class="visual-copy">The latest payload values explain what the model just saw.</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        feature_sources = _build_live_feature_sources(latest_payload, len(prediction_rows))
+        st.dataframe(feature_sources, use_container_width=True, hide_index=True)
+        st.markdown(
+            """
+            <div class="tracking-notes">
+                <div class="tracking-note">
+                    <span>Live State</span>
+                    <strong>API Connected</strong>
+                    <p>Prediction records are feeding the dashboard in near real time.</p>
+                </div>
+                <div class="tracking-note">
+                    <span>Refresh Mode</span>
+                    <strong>Optional</strong>
+                    <p>Use auto-refresh when you want the view to behave like a live wallboard.</p>
+                </div>
+                <div class="tracking-note">
+                    <span>Audience</span>
+                    <strong>Operations / Retention</strong>
+                    <p>Built for monitoring, intervention, and quick action on at-risk users.</p>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-    with feature_col:
-        st.markdown("### Automatic Feature Table")
-        feature_sources = pd.DataFrame(
-            [
-                {"Feature": "days_signup_age", "Source": "user signup date"},
-                {"Feature": "recency_days", "Source": "latest event timestamp"},
-                {"Feature": "frequency_total", "Source": "session/login count"},
-                {"Feature": "session_duration_avg", "Source": "session start and end time"},
-                {"Feature": "feature_count_used", "Source": "unique features/events used"},
-                {"Feature": "device_type / os_type", "Source": "browser or app device metadata"},
-                {"Feature": "user_segment / region", "Source": "user profile or delivery location"},
-            ]
-        )
-        st.dataframe(feature_sources, use_container_width=True, hide_index=True)
 
     chart_col1, chart_col2 = st.columns(2)
     with chart_col1:
@@ -1491,32 +1994,59 @@ elif page == "Production Tracking":
     )
     st.dataframe(scale_df, use_container_width=True, hide_index=True)
 
-    with st.expander("Developer test panel", expanded=False):
-        quick1, quick2, quick3 = st.columns(3)
-        run_profile: str | None = None
-        with quick1:
-            if st.button("Test low risk", use_container_width=True):
-                run_profile = "Low risk"
-        with quick2:
-            if st.button("Test balanced", use_container_width=True):
-                run_profile = "Balanced"
-        with quick3:
-            if st.button("Test high risk", use_container_width=True):
-                run_profile = "High risk"
+    st.markdown(
+        """
+        <div class="panel">
+            <div class="panel-title">Developer Test Panel</div>
+            <div class="panel-copy">These controls call the live API, score a profile, and verify that end-to-end prediction is working.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-        if run_profile:
-            success, data, msg = score_profile(run_profile)
-            if success:
-                probability = float(data["probability"])
-                gauge_col, text_col = st.columns([0.8, 1.2])
-                with gauge_col:
-                    st.plotly_chart(build_gauge(probability), use_container_width=True)
-                with text_col:
-                    st.metric("Profile", run_profile)
-                    st.metric("Drop-off probability", f"{probability * 100:.1f}%")
-                    render_callout(risk_kind(probability), classify_risk(probability), "API prediction test completed.")
-            else:
-                st.error(f"Prediction failed: {msg}")
+    test_col1, test_col2, test_col3 = st.columns(3)
+    run_profile: str | None = None
+    with test_col1:
+        if st.button("Test low risk", use_container_width=True):
+            run_profile = "Low risk"
+    with test_col2:
+        if st.button("Test balanced", use_container_width=True):
+            run_profile = "Balanced"
+    with test_col3:
+        if st.button("Test high risk", use_container_width=True):
+            run_profile = "High risk"
+
+    if run_profile:
+        success, data, msg = score_profile(run_profile)
+        if success:
+            probability = float(data["probability"])
+            st.session_state["tracking_test_result"] = {
+                "profile": run_profile,
+                "probability": probability,
+                "risk_label": classify_risk(probability),
+                "risk_kind": risk_kind(probability),
+            }
+            st.rerun()
+        else:
+            st.session_state["tracking_test_result"] = {"error": msg}
+            st.error(f"Prediction failed: {msg}")
+
+    test_result = st.session_state.get("tracking_test_result")
+    if isinstance(test_result, dict):
+        if "error" in test_result:
+            st.error(f"Prediction failed: {test_result['error']}")
+        else:
+            gauge_col, text_col = st.columns([0.8, 1.2])
+            with gauge_col:
+                st.plotly_chart(build_gauge(float(test_result["probability"])), use_container_width=True)
+            with text_col:
+                st.metric("Profile", str(test_result["profile"]))
+                st.metric("Drop-off probability", f"{float(test_result['probability']) * 100:.1f}%")
+                render_callout(test_result["risk_kind"], test_result["risk_label"], "API prediction test completed.")
+
+    if auto_refresh:
+        time.sleep(6)
+        st.rerun()
 
 
 # ============================================================================
