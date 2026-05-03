@@ -1,0 +1,15 @@
+apiVersion: v2
+name: user-dropoff-detection
+description: A production-grade ML API for predicting user dropoff
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - machine-learning
+  - api
+  - kubernetes
+  - flask
+  - dropoff-detection
+maintainers:
+  - name: Your Name
+    email: your.email@example.com

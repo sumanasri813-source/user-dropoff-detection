@@ -1,1 +1,4 @@
-{}
+{
+  "tests/contract/test_crud_operations.py": true,
+  "tests/contract/test_predict_contract.py": true
+}
