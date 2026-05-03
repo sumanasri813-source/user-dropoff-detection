@@ -1,0 +1,16 @@
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+env/
+build/
+dist/
+.git
+.vscode
+data/
+models/
+results/
+logs/
+node-minimal/
