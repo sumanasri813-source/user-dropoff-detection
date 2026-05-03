@@ -8,7 +8,8 @@ from flask import jsonify, request
 
 
 def load_security_config(config_path: str = "config.yaml") -> Tuple[bool, str | None]:
-    required = False
+    # REQUIRE_AUTH env var is authoritative; auth is opt-in and disabled by default.
+    required = os.getenv("REQUIRE_AUTH", "false").lower() in ("1", "true", "yes")
     key: str | None = None
 
     try:
@@ -16,7 +17,6 @@ def load_security_config(config_path: str = "config.yaml") -> Tuple[bool, str | 
 
         cfg = load_config(config_path)
         security = cfg.get("security", {}) if isinstance(cfg.get("security", {}), dict) else {}
-        required = bool(security.get("require_auth", False))
 
         env_var_name = str(security.get("api_key_env_var", "API_KEY")).strip() or "API_KEY"
         key_from_env = os.getenv(env_var_name, "").strip()
