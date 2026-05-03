@@ -1,6 +1,11 @@
+# Runtime logs and generated monitoring outputs
+logs/
+*.log
+mlops/monitoring/alerts/*.jsonl
+
 # Python bytecode and cache
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
 
@@ -13,10 +18,6 @@ venv/
 
 # Local environment files
 .env
-
-# Logs and runtime artifacts
-logs/
-*.log
 
 # Metrics and event streams
 *.jsonl
