@@ -49,3 +49,5 @@ docker push <user>/user-dropoff-detection:gunicorn
 Notes
 - The image uses `requirements-prod.txt` (minimal runtime deps). If you need dev tools, build with the full `requirements.txt`.
 - If you prefer `gunicorn` in your local environment rather than Docker, ensure you run it in Python 3.11 to avoid `pkg_resources` issues.
+- The container now runs as a non-root user (`app`) for better security.
+- CI workflow `.github/workflows/docker-image.yml` builds the image and can publish to GHCR on `main`/tags.

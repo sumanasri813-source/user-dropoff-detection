@@ -2,18 +2,23 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-# Install build dependencies for some packages
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential gcc libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Use a dedicated non-root user for runtime hardening.
+RUN addgroup --system app && adduser --system --ingroup app app
 
 COPY requirements-prod.txt ./
-RUN pip install --no-cache-dir -r requirements-prod.txt
+RUN pip install -r requirements-prod.txt
 
-COPY . .
+COPY --chown=app:app . .
+
+# Ensure runtime-writable directories exist for non-root execution.
+RUN mkdir -p /app/logs /app/results /app/data/processed /app/models \
+	&& chown -R app:app /app
+
+USER app
 
 EXPOSE 8000
 
