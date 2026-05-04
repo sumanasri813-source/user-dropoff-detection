@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Admin Dashboard - Audit Logs</title>
+  <style>
+    body{font-family:Arial;margin:0;padding:0;background:#f7f7f7;color:#222}
+    header{background:#222;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+    main{padding:16px}
+    .panel{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .grid{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    label{display:flex;gap:6px;align-items:center}
+    input{padding:6px 8px;border:1px solid #ccc;border-radius:6px}
+    button,a.btn{padding:7px 10px;border:0;border-radius:6px;background:#1f6feb;color:#fff;text-decoration:none;cursor:pointer;display:inline-block}
+    button.secondary,a.secondary{background:#555}
+    button.danger{background:#b42318}
+    table{border-collapse:collapse;width:100%;background:#fff}
+    th,td{border:1px solid #ddd;padding:8px;text-align:left;vertical-align:top}
+    th{background:#f4f4f4}
+    .muted{color:#777}
+    .error{color:#b42318}
+    .success{color:#116329}
+  </style>
+</head>
+<body>
+  <header>
+    <h1 style="margin:0;font-size:18px">Admin Dashboard</h1>
+    {% if admin_authenticated %}
+      <button id="logout_btn" class="secondary">Logout</button>
+    {% endif %}
+  </header>
+
+  <main>
+    {% if not admin_authenticated %}
+      <section class="panel" style="max-width:420px">
+        <h2 style="margin-top:0">Admin Login</h2>
+        {% if login_message %}
+          <p class="error">{{ login_message }}</p>
+        {% else %}
+          <p class="muted">Sign in with an admin account to view audit logs.</p>
+        {% endif %}
+        <form id="admin_login_form">
+          <div style="display:grid;gap:10px">
+            <label>Username / Email
+              <input id="login_identifier" name="username" autocomplete="username" required>
+            </label>
+            <label>Password
+              <input id="login_password" name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <button type="submit">Sign in</button>
+          </div>
+        </form>
+      </section>
+    {% else %}
+      <section class="panel">
+        <div class="grid" style="margin-bottom:12px">
+          <label>Per page: <input id="per" value="{{ per_page if per_page is defined else 50 }}" style="width:84px"/></label>
+          <label>User ID: <input id="filter_user" list="users_list" value="{{ user_id if user_id is defined else '' }}" style="width:120px"/></label>
+          <datalist id="users_list"></datalist>
+          <label>Action: <input id="filter_action" list="actions_list" value="{{ action_filter if action_filter is defined else '' }}" style="width:120px"/></label>
+          <datalist id="actions_list"></datalist>
+          <label>Resource: <input id="filter_resource" list="resources_list" value="{{ resource_filter if resource_filter is defined else '' }}" style="width:120px"/></label>
+          <datalist id="resources_list"></datalist>
+          <button id="reload">Reload</button>
+          <a class="btn" id="export_csv" href="#">Export CSV</a>
+        </div>
+
+        <table>
+          <thead><tr><th>ID</th><th>User</th><th>Action</th><th>Resource</th><th>Summary</th><th>Created</th><th>Actions</th></tr></thead>
+          <tbody>
+          {% for r in logs %}
+            <tr>
+              <td>{{ r.id }}</td>
+              <td>{{ r.user_id }}</td>
+              <td>{{ r.action }}</td>
+              <td>{{ r.resource_type }}</td>
+              <td>{{ r.changes_summary or '' }}</td>
+              <td>{{ r.created_at or '' }}</td>
+              <td><button class="danger delete" data-id="{{ r.id }}">Delete</button></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          {% set prev_page = page - 1 if page > 1 else None %}
+          {% set next_page = page + 1 if (page * per_page) < total else None %}
+          {% if prev_page %}
+            <a class="btn secondary" id="prev_link" href="?page={{ prev_page }}&per_page={{ per_page }}&user_id={{ user_id }}&action={{ action_filter }}&resource_type={{ resource_filter }}">Previous</a>
+          {% else %}
+            <span class="muted">Previous</span>
+          {% endif %}
+          <span>Page {{ page }} of {{ (total // per_page) + (1 if total % per_page > 0 else 0) }}</span>
+          {% if next_page %}
+            <a class="btn secondary" id="next_link" href="?page={{ next_page }}&per_page={{ per_page }}&user_id={{ user_id }}&action={{ action_filter }}&resource_type={{ resource_filter }}">Next</a>
+          {% else %}
+            <span class="muted">Next</span>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
+  </main>
+
+  <script>
+    const csrfCookie = () => document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1] || ''
+
+    {% if not admin_authenticated %}
+      document.getElementById('admin_login_form').addEventListener('submit', async (event) => {
+        event.preventDefault()
+        const identifier = document.getElementById('login_identifier').value.trim()
+        const password = document.getElementById('login_password').value
+        const response = await fetch('/admin/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({username: identifier, password})
+        })
+        if (response.ok) {
+          window.location = '/admin/dashboard'
+        } else {
+          const body = await response.json().catch(() => ({}))
+          alert(body.error || 'Login failed')
+        }
+      })
+    {% else %}
+      document.getElementById('logout_btn').addEventListener('click', async () => {
+        await fetch('/admin/logout', {method: 'POST'})
+        window.location = '/admin/dashboard'
+      })
+
+      document.getElementById('reload').addEventListener('click', ()=>{
+        const per = document.getElementById('per').value || 50
+        const user = document.getElementById('filter_user').value || ''
+        const action = document.getElementById('filter_action').value || ''
+        const resource = document.getElementById('filter_resource').value || ''
+        const url = new URL(window.location.href)
+        url.searchParams.set('per_page', per)
+        url.searchParams.set('page', 1)
+        url.searchParams.set('user_id', user)
+        url.searchParams.set('action', action)
+        url.searchParams.set('resource_type', resource)
+        window.location = url.toString()
+      })
+
+      document.getElementById('export_csv').addEventListener('click', ()=>{
+        const per = document.getElementById('per').value || 1000
+        const user = document.getElementById('filter_user').value || ''
+        const action = document.getElementById('filter_action').value || ''
+        const resource = document.getElementById('filter_resource').value || ''
+        const url = new URL(window.location.href)
+        url.pathname = '/admin/audit-logs/export'
+        url.searchParams.set('per_page', per)
+        url.searchParams.set('page', 1)
+        url.searchParams.set('user_id', user)
+        url.searchParams.set('action', action)
+        url.searchParams.set('resource_type', resource)
+        window.location = url.toString()
+      })
+
+      async function populateDatalist(field, elId){
+        try{
+          const resp = await fetch(`/admin/audit-logs/distinct?field=${field}`)
+          if(!resp.ok) return
+          const body = await resp.json()
+          const list = document.getElementById(elId)
+          list.innerHTML = ''
+          body.values.forEach(v=>{
+            const opt = document.createElement('option')
+            opt.value = v
+            list.appendChild(opt)
+          })
+        }catch(e){/* ignore */}
+      }
+
+      populateDatalist('user_id', 'users_list')
+      populateDatalist('action', 'actions_list')
+      populateDatalist('resource_type', 'resources_list')
+
+      document.querySelectorAll('button.delete').forEach(b=>b.addEventListener('click', async (e)=>{
+        const id = e.currentTarget.dataset.id
+        const reason = prompt('Reason for deletion (min 5 chars)')
+        if(!reason || reason.length < 5) return alert('Reason too short')
+        const headers = {'Content-Type':'application/json', 'X-CSRF-Token': csrfCookie()}
+        const res = await fetch(`/admin/audit-logs/${id}`, {method: 'DELETE', headers: headers, body: JSON.stringify({reason})})
+        if(res.ok){ alert('Deleted'); window.location.reload() } else { alert('Delete failed: '+res.status) }
+      }))
+    {% endif %}
+  </script>
+</body>
+</html>

@@ -30,3 +30,5 @@ security:
   require_auth: false
   api_key: dev-local-key
   api_key_env_var: API_KEY
+  session_secret_key: dev-session-secret
+  session_secret_env_var: SESSION_SECRET_KEY

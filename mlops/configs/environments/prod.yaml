@@ -34,4 +34,6 @@ security:
   require_auth: true
   api_key: ""
   api_key_env_var: API_KEY
+  session_secret_key: ""
+  session_secret_env_var: SESSION_SECRET_KEY
   enable_rate_limiting: true

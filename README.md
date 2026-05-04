@@ -159,3 +159,42 @@ Recommended production approach:
 - API protected routes behave correctly with and without key
 - Final model and evaluation artifacts are generated
 - README, DEMO flow, and run scripts are consistent
+
+## Production Security
+
+Before deploying, review [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the production checklist, including session secret separation, CSRF verification, and HSTS requirements.
+
+## Production Deployment
+
+The project includes complete CI/CD setup with GitHub Actions, environment validation, and security hardening.
+
+**For deployment guidance, see [docs/PRODUCTION_GUIDE.md](docs/PRODUCTION_GUIDE.md)** — this comprehensive guide covers:
+- GitHub Actions setup for unit tests and E2E tests
+- Secrets management and GitHub Actions configuration
+- Docker deployment example
+- Production security checklist
+- Environment variable validation
+
+**Related documentation:**
+- [docs/CI_CD_SETUP.md](docs/CI_CD_SETUP.md) — Detailed CI/CD workflow setup
+- [docs/GITHUB_ACTIONS_SECRETS.md](docs/GITHUB_ACTIONS_SECRETS.md) — Step-by-step secrets configuration
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Security headers, CSRF, and session secrets
+- [docs/DEPLOYMENT_SYSTEMD.md](docs/DEPLOYMENT_SYSTEMD.md) — Linux systemd service example
+- [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) — Sentry, Prometheus, and logging integration
+
+**Quick start:**
+```bash
+# 1. Generate secrets
+python -c "import secrets; print('SESSION_SECRET_KEY:', secrets.token_hex(32))"
+python -c "import secrets; print('JWT_SECRET_KEY:', secrets.token_hex(32))"
+
+# 2. Set environment and run
+export SESSION_SECRET_KEY=<generated-secret>
+export JWT_SECRET_KEY=<generated-secret>
+export ENABLE_SECURITY_HARDENING=true
+pytest -q tests/unit  # Verify locally first
+python startup/env_validator.py  # Validate env on startup
+
+# 3. Deploy to your platform (Docker, systemd, etc.)
+# 4. Configure GitHub Actions secrets and run E2E tests (see docs/GITHUB_ACTIONS_SECRETS.md)
+```

@@ -1,0 +1,20 @@
+[Unit]
+Description=User Dropoff Detection API
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/app    # REPLACE: absolute path to repository
+ExecStart=/path/to/app/startup/run.sh  # REPLACE: absolute path to startup script
+Environment=PYTHONUNBUFFERED=1
+# Example environment variables (do NOT store secrets in plaintext here).
+# You should instead use systemd's EnvironmentFile or a secrets manager.
+# Environment=SESSION_SECRET_KEY=your_session_secret
+# Environment=JWT_SECRET_KEY=your_jwt_secret
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

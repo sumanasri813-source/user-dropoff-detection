@@ -33,6 +33,16 @@ GitHub Repo → CI/CD Pipeline → Docker Registry → Kubernetes Cluster
    - Prometheus
    - Grafana
 
+## Environment Template
+
+Copy the root [.env.example](/workspaces/user-dropoff-detection/.env.example) file for local development, or use [mlops/configs/secrets_template/env.template](/workspaces/user-dropoff-detection/mlops/configs/secrets_template/env.template) for deployment-oriented secret injection.
+
+Required production values to set explicitly:
+- `SESSION_SECRET_KEY`
+- `JWT_SECRET_KEY`
+- `API_KEY`
+- `FLASK_ENV=production` or `ENABLE_SECURITY_HARDENING=true`
+
 ## Step 1: Deploy to Kubernetes
 
 ```bash
@@ -159,6 +169,11 @@ For fully automated deployment to K8s, update your GitHub Actions workflow to in
 - [ ] Kubernetes cluster configured
 - [ ] Images published to Docker Hub
 - [ ] Manifests reviewed and customized
+- [ ] `SESSION_SECRET_KEY` and `JWT_SECRET_KEY` set to different values
+- [ ] `FLASK_ENV=production` or `ENABLE_SECURITY_HARDENING=true` set
+- [ ] Admin login/session flow verified over HTTPS
+- [ ] CSRF cookie and `X-CSRF-Token` header verified for admin deletes
+- [ ] HSTS enabled on admin routes
 - [ ] Monitoring stack deployed (optional)
 - [ ] Load testing completed
 - [ ] Health checks passing
@@ -188,6 +203,13 @@ kubectl top pods -n user-dropoff
 3. **Service Mesh**: Add Istio for advanced traffic management
 4. **Logging**: Deploy ELK stack for centralized logging
 5. **Security**: Implement network policies and RBAC
+
+## App-Specific Security Notes
+
+- The admin dashboard uses a secure Flask session cookie and CSRF token.
+- Keep the admin UI behind HTTPS and avoid exposing it through public static hosting.
+- Keep public docs in `docs/public/` and protected admin pages in `docs/private/`.
+- Use the deployment checklist in the repository README before promoting to production.
 
 ## Support
 

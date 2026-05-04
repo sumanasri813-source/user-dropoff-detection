@@ -30,5 +30,16 @@
   "tests/contract/test_predict_contract.py::PredictContractTests::test_public_request_fixture_matches_schema",
   "tests/integration/test_gateway_smoke.py::GatewaySmokeTest::test_gateway_predict_roundtrip",
   "tests/integration/test_monitoring_worker.py::MonitoringWorkerTests::test_worker_runs_periodic_cycles",
-  "tests/integration/test_monitoring_worker.py::MonitoringWorkerTests::test_worker_survives_cycle_exception"
+  "tests/integration/test_monitoring_worker.py::MonitoringWorkerTests::test_worker_survives_cycle_exception",
+  "tests/unit/test_audit_admin.py::AuditAdminTests::test_admin_can_view_audit_logs",
+  "tests/unit/test_audit_admin_delete.py::AuditAdminDeleteTests::test_admin_delete_audit_log",
+  "tests/unit/test_auth_routes.py::AuthRouteTests::test_api_key_allows_sensitive_endpoints",
+  "tests/unit/test_auth_routes.py::AuthRouteTests::test_login_and_protected_route_with_token",
+  "tests/unit/test_auth_routes.py::AuthRouteTests::test_refresh_and_logout_flow",
+  "tests/unit/test_auth_utils.py::AuthUtilityTests::test_invalid_token_returns_none_subject",
+  "tests/unit/test_auth_utils.py::AuthUtilityTests::test_jwt_token_roundtrip",
+  "tests/unit/test_auth_utils.py::AuthUtilityTests::test_password_hash_roundtrip",
+  "tests/unit/test_database_models.py::DatabaseModelTests::test_core_models_expose_table_names",
+  "tests/unit/test_database_models.py::DatabaseModelTests::test_database_url_uses_environment_configuration",
+  "tests/unit/test_database_models.py::DatabaseModelTests::test_expected_tables_are_registered"
 ]

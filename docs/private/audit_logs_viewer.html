@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Audit Logs Viewer (Admin)</title>
+  <style>body{font-family:Arial;margin:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px}th{background:#f4f4f4}</style>
+</head>
+<body>
+  <h2>Audit Logs (Admin)</h2>
+  <p>Requires admin Bearer token in Authorization header: <code>Authorization: Bearer &lt;token&gt;</code></p>
+  <div>
+    <label>Per page: <input id="per" value="50" /></label>
+    <button id="load">Load</button>
+  </div>
+  <table id="tbl">
+    <thead><tr><th>ID</th><th>User</th><th>Action</th><th>Resource</th><th>Summary</th><th>Created</th><th>Actions</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <script>
+    async function load(page=1){
+      const per = document.getElementById('per').value||50
+      const token = prompt('Paste admin Bearer token:')
+      const res = await fetch(`/admin/audit-logs?page=${page}&per_page=${per}`,{headers:{'Authorization':`Bearer ${token}`}})
+      if(!res.ok){ alert('Failed to load: '+res.status); return }
+      const body = await res.json();
+      const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML=''
+      body.logs.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.id}</td><td>${r.user_id}</td><td>${r.action}</td><td>${r.resource_type}</td><td>${r.changes_summary||''}</td><td>${r.created_at||''}</td><td><button data-id='${r.id}'>Delete</button></td>`
+        tbody.appendChild(tr)
+      })
+      document.querySelectorAll('button[data-id]').forEach(b=>b.addEventListener('click',async e=>{
+        const id = e.target.dataset.id
+        const reason = prompt('Reason for deletion (min 5 chars)')
+        if(!reason||reason.length<5) return alert('Reason too short')
+        const del = await fetch(`/admin/audit-logs/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({reason})})
+        if(del.ok){ alert('Deleted'); load(page) } else { alert('Delete failed: '+del.status) }
+      }))
+    }
+    document.getElementById('load').addEventListener('click',()=>load())
+  </script>
+</body>
+</html>
