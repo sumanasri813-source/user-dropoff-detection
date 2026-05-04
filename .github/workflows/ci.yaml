@@ -28,9 +28,12 @@ jobs:
 
       - name: Run env validator
         env:
+          PYTHONPATH: ${{ github.workspace }}
           SESSION_SECRET_KEY: test
           JWT_SECRET_KEY: test
         run: python startup/env_validator.py
 
       - name: Run unit tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: pytest -q tests/unit

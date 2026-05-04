@@ -24,6 +24,7 @@ jobs:
 
       - name: Run E2E tests
         env:
+          PYTHONPATH: ${{ github.workspace }}
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
           E2E_ADMIN_USER: ${{ secrets.E2E_ADMIN_USER }}
           E2E_ADMIN_PW: ${{ secrets.E2E_ADMIN_PW }}
