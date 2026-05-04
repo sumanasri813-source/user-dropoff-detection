@@ -11,6 +11,7 @@ import os
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from jose import JWTError
+from werkzeug.exceptions import HTTPException
 
 from src.api.prediction_service import (
     load_decision_threshold,
@@ -368,6 +369,27 @@ def handle_exception(exc: Exception):
     O(1) - constant time error mapping and logging.
     """
     request_id = getattr(g, "request_id", "")
+
+    # Preserve Flask/Werkzeug HTTP semantics (e.g., 404/405) instead of mapping to 500.
+    if isinstance(exc, HTTPException):
+        code = int(getattr(exc, "code", 500) or 500)
+        if code >= 500:
+            collector.increment_counter("api_unhandled_exceptions")
+        else:
+            collector.increment_counter("api_http_exceptions")
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "HTTP_ERROR",
+                        "message": str(getattr(exc, "description", str(exc))),
+                        "details": {"error_type": type(exc).__name__, "status_code": code},
+                    },
+                    "request_id": request_id,
+                }
+            ),
+            code,
+        )
     
     # Handle rate limiting errors separately
     if isinstance(exc, RateLimitError):
@@ -405,6 +427,23 @@ def handle_exception(exc: Exception):
 @app.route("/favicon.ico", methods=["GET"])
 def favicon() -> tuple:
     return ("", 204)
+
+
+@app.route("/", methods=["GET"])
+def root() -> tuple:
+    return (
+        jsonify(
+            {
+                "status": "ok",
+                "service": "user-dropoff-detection-api",
+                "health": "/health",
+                "predict": "/predict",
+                "predict_batch": "/predict-batch",
+                "monitor": "/monitor",
+            }
+        ),
+        200,
+    )
 
 
 @app.route("/health", methods=["GET"])
