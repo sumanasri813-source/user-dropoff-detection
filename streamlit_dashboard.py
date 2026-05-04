@@ -25,7 +25,7 @@ import streamlit as st
 # ============================================================================
 
 st.set_page_config(
-    page_title="AI Drop-Off Command Center",
+    page_title="Early User Churn Detection — Revenue Retention",
     page_icon=":chart_with_downwards_trend:",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -1230,8 +1230,8 @@ st.markdown(
         <div class="brand">
             <div class="brand-mark">AI</div>
             <div>
-                <div class="brand-title">Drop-Off Detection</div>
-                <div class="brand-subtitle">Retention risk intelligence dashboard</div>
+                <div class="brand-title">Early User Churn Detection</div>
+                <div class="brand-subtitle">Revenue retention intelligence dashboard</div>
             </div>
         </div>
         <div class="topbar-actions">
@@ -1278,7 +1278,7 @@ if page == "Command Center":
             """
             <div class="hero-copy">
                 <div class="eyebrow">AI-Driven Retention Intelligence</div>
-                <h1>Silent User Drop-Off Detection Command Center</h1>
+                <h1>Early User Churn Detection Command Center</h1>
                 <p>
                     A modern ML dashboard that converts behavioral signals into risk scores,
                     intervention priorities, model evidence, and operational insight.

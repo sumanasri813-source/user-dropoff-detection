@@ -8,13 +8,13 @@
 
 ## 🎯 WHAT HAS BEEN ACCOMPLISHED
 
-Your user drop-off detection system is now **complete, tested, and ready for evaluation**.
+Your Early User Churn Detection system is now **complete, tested, and ready for evaluation**.
 
 ### ✅ SYSTEM STATUS
 
 ```
 ┌─────────────────────────────────────────────┐
-│  USER DROP-OFF DETECTION SYSTEM             │
+│  EARLY USER CHURN DETECTION SYSTEM          │
 ├─────────────────────────────────────────────┤
 │  API Server:      ✅ Running on :5000       │
 │  Dashboard:       ✅ Running on :8502       │

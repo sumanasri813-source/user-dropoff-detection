@@ -1,4 +1,5 @@
 [
+  "e2e/test_admin_e2e.py::test_admin_login_and_csrf",
   "tests/contract/test_alert_rules.py::AlertRulesTests::test_alert_dedup_prevents_duplicate_persistence",
   "tests/contract/test_alert_rules.py::AlertRulesTests::test_drift_alert_triggers",
   "tests/contract/test_alert_rules.py::AlertRulesTests::test_latency_and_health_alerts_trigger",

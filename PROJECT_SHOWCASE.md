@@ -2,7 +2,7 @@
 
 ## Overview
 
-**User Dropoff Detection ML API** — A production-grade machine learning service that predicts user abandonment in e-commerce sessions using Flask, Docker, Kubernetes, and comprehensive CI/CD automation.
+**Early User Churn Detection in Web Applications: A Production Machine Learning System for Revenue Retention** — A production-grade machine learning service that predicts early user abandonment and enables retention actions using Flask, Docker, Kubernetes, and comprehensive CI/CD automation.
 
 ## What You've Built
 

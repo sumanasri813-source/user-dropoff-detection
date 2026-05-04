@@ -1,6 +1,6 @@
-# User Drop-Off Detection in Web Applications
+# Early User Churn Detection in Web Applications: A Production Machine Learning System for Revenue Retention
 
-Production-oriented machine learning system that predicts user churn risk and exposes secured inference APIs for operational use.
+Production-oriented machine learning system that predicts early user churn risk and exposes secured inference APIs to enable timely revenue retention actions.
 
 ## Problem Statement
 
