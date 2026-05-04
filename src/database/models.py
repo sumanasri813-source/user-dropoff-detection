@@ -3,7 +3,7 @@ Database models for User Dropoff Detection system.
 Handles users, predictions, audit logs, and system state.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, Enum, Index
 from sqlalchemy.orm import declarative_base, relationship
 import enum
@@ -35,8 +35,14 @@ class User(Base):
     department = Column(String(255))
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True
+    )
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    )
     last_login = Column(DateTime)
     
     # Relationships
@@ -85,7 +91,9 @@ class Prediction(Base):
     # Metadata
     model_version = Column(String(50), default="1.0.0")
     prediction_latency_ms = Column(Float)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True
+    )
     
     # Relationships
     user = relationship("User", back_populates="predictions")
@@ -125,7 +133,9 @@ class APICall(Base):
     ip_address = Column(String(50))
     user_agent = Column(Text)
     
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True
+    )
     
     # Relationships
     user = relationship("User", back_populates="api_calls")
@@ -158,7 +168,9 @@ class AuditLog(Base):
     user_agent = Column(Text)
     reason = Column(String(500))
     
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True
+    )
     
     # Relationships
     user = relationship("User", back_populates="audit_logs")
@@ -200,7 +212,9 @@ class ModelMetrics(Base):
     compared_to_version = Column(String(50))  # baseline model version
     metrics_change = Column(Text)  # JSON with metric changes
     
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True
+    )
     evaluation_date = Column(DateTime)
     
     __table_args__ = (
@@ -226,8 +240,14 @@ class SystemConfig(Base):
     
     # Management
     updated_by = Column(String(255))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
+    )
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+    )
     
     __table_args__ = (
         Index('ix_config_key_enabled', 'config_key', 'is_enabled'),

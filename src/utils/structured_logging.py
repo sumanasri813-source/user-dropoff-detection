@@ -6,7 +6,7 @@ Configures structured JSON logging, log rotation, and audit trails.
 import json
 import logging
 import logging.handlers
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -71,7 +71,7 @@ class StructuredLogger:
     def _log_structured(self, level: int, message: str, data: Dict[str, Any]):
         """Internal method to log structured data."""
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "message": message,
             "data": data,
         }
@@ -137,7 +137,7 @@ class PredictionAuditLog:
     ):
         """Log prediction to audit trail (JSONL format)."""
         audit_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "request_id": request_id,
             "user_id": user_id,
             "input_features": input_features,
