@@ -25,10 +25,12 @@ services:
       REDIS_URL: redis://redis:6379
       SESSION_SECRET_KEY: ci-session-secret
       JWT_SECRET_KEY: ci-jwt-secret
+      HOME: /tmp
+      PYTHONPATH: /app
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: bash -lc "python -m pip install -r requirements.txt && python -m pip install -r e2e/requirements.txt || true && python -m playwright install --with-deps || true && pytest -q"
+    command: bash -lc "python -m pip install --user -r requirements.txt && python -m pip install --user -r e2e/requirements.txt && python -m playwright install --with-deps && python -m pytest -q"
     tty: true
