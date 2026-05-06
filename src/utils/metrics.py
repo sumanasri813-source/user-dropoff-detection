@@ -10,13 +10,12 @@ import time
 from collections import deque
 from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 from typing import Any, Deque, Dict, List, Optional
 
 import pandas as pd
-
 
 METRICS_DIR = Path("metrics")
 OBS_METRICS_DIR = Path("mlops") / "observability" / "metrics"
@@ -28,7 +27,9 @@ request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 
 @dataclass
 class MetricEvent:
-    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     event_type: str = ""
     module: str = ""
     metric_name: str = ""
@@ -91,7 +92,9 @@ class MetricsCollector:
     def record_prediction(self, probability: float, risk_level: str) -> None:
         with self._lock:
             self.recent_probabilities.append(float(probability))
-            self.counters["predictions_total"] = self.counters.get("predictions_total", 0) + 1
+            self.counters["predictions_total"] = (
+                self.counters.get("predictions_total", 0) + 1
+            )
             risk_key = f"predictions_risk_{risk_level}"
             self.counters[risk_key] = self.counters.get(risk_key, 0) + 1
 
@@ -103,7 +106,9 @@ class MetricsCollector:
             risk_level=risk_level,
         )
 
-    def get_drift_stub(self, baseline_mean: float = 0.5, warn_threshold: float = 0.10) -> Dict[str, Any]:
+    def get_drift_stub(
+        self, baseline_mean: float = 0.5, warn_threshold: float = 0.10
+    ) -> Dict[str, Any]:
         with self._lock:
             probs = list(self.recent_probabilities)
 
@@ -137,7 +142,7 @@ class MetricsCollector:
 
         # O(1) average calculation
         avg_latency = float(sum(latencies) / len(latencies)) if latencies else 0.0
-        
+
         # O(n log n) p95 calculation using sort instead of pd.Series.quantile() - O(n) better for large datasets
         if len(latencies) >= 2:
             sorted_latencies = sorted(latencies)
@@ -160,7 +165,10 @@ class MetricsCollector:
     def save_metrics(self, output_path: Optional[str] = None) -> str:
         out_path: Path
         if output_path is None:
-            out_path = METRICS_DIR / f"metrics_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.jsonl"
+            out_path = (
+                METRICS_DIR
+                / f"metrics_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.jsonl"
+            )
         else:
             out_path = Path(output_path)
 
@@ -176,17 +184,22 @@ class MetricsCollector:
     def persist_snapshot(self, output_path: Optional[str] = None) -> str:
         out_path: Path
         if output_path is None:
-            out_path = OBS_METRICS_DIR / f"snapshot_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
+            out_path = (
+                OBS_METRICS_DIR
+                / f"snapshot_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+            )
         else:
             out_path = Path(output_path)
 
         out_path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "snapshot": self.get_api_snapshot(),
             "summary": self.get_summary(),
         }
-        out_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+        out_path.write_text(
+            json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8"
+        )
         return str(out_path)
 
     def maybe_persist(self, force: bool = False) -> Dict[str, str] | None:
@@ -196,7 +209,8 @@ class MetricsCollector:
         elapsed = time.time() - self._last_persist_time
 
         should_persist = force or (
-            elapsed >= self.persist_interval_seconds and new_events >= self.persist_min_new_events
+            elapsed >= self.persist_interval_seconds
+            and new_events >= self.persist_min_new_events
         )
         if not should_persist:
             return None
@@ -224,7 +238,10 @@ class MetricsCollector:
             "event_types": df["event_type"].value_counts().to_dict(),
             "modules": df["module"].value_counts().to_dict(),
             "duration_seconds": (
-                (pd.to_datetime(df["timestamp"].max()) - pd.to_datetime(df["timestamp"].min())).total_seconds()
+                (
+                    pd.to_datetime(df["timestamp"].max())
+                    - pd.to_datetime(df["timestamp"].min())
+                ).total_seconds()
                 if len(df) > 1
                 else 0
             ),

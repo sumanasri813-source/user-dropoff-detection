@@ -2,20 +2,15 @@
 Database package - ORM models, connection management, and migrations.
 """
 
+from src.database.db import DatabaseConfig, DatabaseManager, DatabaseUtils, get_db
 from src.database.models import (
-    Base,
-    User,
-    Prediction,
     APICall,
     AuditLog,
+    Base,
     ModelMetrics,
+    Prediction,
     SystemConfig,
-)
-from src.database.db import (
-    DatabaseManager,
-    DatabaseConfig,
-    DatabaseUtils,
-    get_db,
+    User,
 )
 
 __all__ = [

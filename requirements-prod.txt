@@ -9,3 +9,12 @@ flask==2.3.0
 Werkzeug==2.3.7
 gunicorn==20.1.0
 waitress==2.1.2
+
+# HTTP client used by e2e tests
+requests==2.32.3
+
+# Auth/runtime deps used by src.api.app and src.utils.auth
+sqlalchemy==2.0.36
+python-jose==3.5.0
+passlib>=1.7.4
+bcrypt==4.1.3

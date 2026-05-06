@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -55,13 +55,18 @@ class HealthChecker:
         try:
             df = pd.read_csv(path)
             if len(df) < min_rows:
-                return False, f"Data has only {len(df)} rows, minimum required: {min_rows}"
+                return (
+                    False,
+                    f"Data has only {len(df)} rows, minimum required: {min_rows}",
+                )
             return True, f"Data available ({len(df)} rows)"
         except Exception as exc:
             return False, f"Error reading data file: {str(exc)}"
 
     @staticmethod
-    def check_metrics(metrics_path: str = "results/evaluation_metrics.json") -> tuple[bool, str]:
+    def check_metrics(
+        metrics_path: str = "results/evaluation_metrics.json",
+    ) -> tuple[bool, str]:
         """Check if evaluation metrics are available."""
         path = Path(metrics_path)
         if not path.exists():
@@ -90,10 +95,16 @@ class HealthChecker:
         api_ok, api_msg = cls.check_api_responsive()
 
         all_ok = model_ok and data_ok and metrics_ok and api_ok
-        status = "healthy" if all_ok else ("degraded" if sum([model_ok, data_ok, metrics_ok]) >= 2 else "unhealthy")
+        status = (
+            "healthy"
+            if all_ok
+            else (
+                "degraded" if sum([model_ok, data_ok, metrics_ok]) >= 2 else "unhealthy"
+            )
+        )
 
         return HealthStatus(
-            timestamp=datetime.now(UTC).isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             status=status,
             model_available=model_ok,
             data_available=data_ok,

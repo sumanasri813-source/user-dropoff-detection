@@ -4,8 +4,10 @@ Revision ID: 0001_initial
 Revises: 
 Create Date: 2026-05-04 00:00:00.000000
 """
-from alembic import op
+
 import sqlalchemy as sa
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "0001_initial"
@@ -22,11 +24,20 @@ def upgrade():
         sa.Column("username", sa.String(length=100), nullable=False),
         sa.Column("password_hash", sa.String(length=255), nullable=False),
         sa.Column("full_name", sa.String(length=255)),
-        sa.Column("is_active", sa.Boolean(), nullable=True, server_default=sa.text("true")),
-        sa.Column("is_admin", sa.Boolean(), nullable=True, server_default=sa.text("false")),
+        sa.Column(
+            "is_active", sa.Boolean(), nullable=True, server_default=sa.text("true")
+        ),
+        sa.Column(
+            "is_admin", sa.Boolean(), nullable=True, server_default=sa.text("false")
+        ),
         sa.Column("role", sa.String(length=50), nullable=True, server_default="user"),
         sa.Column("api_key", sa.String(length=255)),
-        sa.Column("api_key_active", sa.Boolean(), nullable=True, server_default=sa.text("true")),
+        sa.Column(
+            "api_key_active",
+            sa.Boolean(),
+            nullable=True,
+            server_default=sa.text("true"),
+        ),
         sa.Column("organization", sa.String(length=255)),
         sa.Column("department", sa.String(length=255)),
         sa.Column("created_at", sa.DateTime(), nullable=True),
@@ -57,7 +68,12 @@ def upgrade():
         sa.Column("dropoff_probability", sa.Float(), nullable=False),
         sa.Column("risk_level", sa.String(length=20), nullable=False),
         sa.Column("confidence_score", sa.Float(), nullable=False),
-        sa.Column("intervention_offered", sa.Boolean(), nullable=True, server_default=sa.text("false")),
+        sa.Column(
+            "intervention_offered",
+            sa.Boolean(),
+            nullable=True,
+            server_default=sa.text("false"),
+        ),
         sa.Column("intervention_type", sa.String(length=100)),
         sa.Column("user_responded", sa.Boolean()),
         sa.Column("conversion_after_intervention", sa.Boolean()),
@@ -65,16 +81,24 @@ def upgrade():
         sa.Column("country", sa.String(length=100)),
         sa.Column("utm_source", sa.String(length=100)),
         sa.Column("utm_campaign", sa.String(length=100)),
-        sa.Column("model_version", sa.String(length=50), nullable=True, server_default="1.0.0"),
+        sa.Column(
+            "model_version", sa.String(length=50), nullable=True, server_default="1.0.0"
+        ),
         sa.Column("prediction_latency_ms", sa.Float()),
         sa.Column("created_at", sa.DateTime(), nullable=True),
     )
 
     op.create_index("ix_predictions_user_id", "predictions", ["user_id"])
-    op.create_index("ix_predictions_dropoff_probability", "predictions", ["dropoff_probability"])
+    op.create_index(
+        "ix_predictions_dropoff_probability", "predictions", ["dropoff_probability"]
+    )
     op.create_index("ix_predictions_risk_level", "predictions", ["risk_level"])
-    op.create_index("ix_prediction_user_created", "predictions", ["user_id", "created_at"])
-    op.create_index("ix_prediction_risk_level", "predictions", ["risk_level", "created_at"])
+    op.create_index(
+        "ix_prediction_user_created", "predictions", ["user_id", "created_at"]
+    )
+    op.create_index(
+        "ix_prediction_risk_level", "predictions", ["risk_level", "created_at"]
+    )
 
     op.create_table(
         "api_calls",
@@ -87,7 +111,12 @@ def upgrade():
         sa.Column("response_time_ms", sa.Float(), nullable=False),
         sa.Column("request_size_bytes", sa.Integer()),
         sa.Column("response_size_bytes", sa.Integer()),
-        sa.Column("cached_result", sa.Boolean(), nullable=True, server_default=sa.text("false")),
+        sa.Column(
+            "cached_result",
+            sa.Boolean(),
+            nullable=True,
+            server_default=sa.text("false"),
+        ),
         sa.Column("error_message", sa.Text()),
         sa.Column("error_type", sa.String(length=100)),
         sa.Column("ip_address", sa.String(length=50)),
@@ -99,7 +128,11 @@ def upgrade():
     op.create_index("ix_api_calls_endpoint", "api_calls", ["endpoint"])
     op.create_index("ix_api_calls_status_code", "api_calls", ["status_code"])
     op.create_index("ix_api_call_user_created", "api_calls", ["user_id", "created_at"])
-    op.create_index("ix_api_call_endpoint_status", "api_calls", ["endpoint", "status_code", "created_at"])
+    op.create_index(
+        "ix_api_call_endpoint_status",
+        "api_calls",
+        ["endpoint", "status_code", "created_at"],
+    )
 
     op.create_table(
         "audit_logs",
@@ -120,8 +153,14 @@ def upgrade():
     op.create_index("ix_audit_logs_user_id", "audit_logs", ["user_id"])
     op.create_index("ix_audit_logs_action", "audit_logs", ["action"])
     op.create_index("ix_audit_logs_resource_type", "audit_logs", ["resource_type"])
-    op.create_index("ix_audit_user_action", "audit_logs", ["user_id", "action", "created_at"])
-    op.create_index("ix_audit_resource", "audit_logs", ["resource_type", "resource_id", "created_at"])
+    op.create_index(
+        "ix_audit_user_action", "audit_logs", ["user_id", "action", "created_at"]
+    )
+    op.create_index(
+        "ix_audit_resource",
+        "audit_logs",
+        ["resource_type", "resource_id", "created_at"],
+    )
 
     op.create_table(
         "model_metrics",
@@ -145,8 +184,14 @@ def upgrade():
         sa.Column("evaluation_date", sa.DateTime()),
     )
 
-    op.create_index("ix_model_metrics_model_version", "model_metrics", ["model_version"])
-    op.create_index("ix_model_metrics_version_date", "model_metrics", ["model_version", "evaluation_date"])
+    op.create_index(
+        "ix_model_metrics_model_version", "model_metrics", ["model_version"]
+    )
+    op.create_index(
+        "ix_model_metrics_version_date",
+        "model_metrics",
+        ["model_version", "evaluation_date"],
+    )
 
     op.create_table(
         "system_config",
@@ -154,9 +199,21 @@ def upgrade():
         sa.Column("config_key", sa.String(length=255), nullable=False),
         sa.Column("config_value", sa.Text(), nullable=False),
         sa.Column("description", sa.Text()),
-        sa.Column("is_feature_flag", sa.Boolean(), nullable=True, server_default=sa.text("false")),
-        sa.Column("is_enabled", sa.Boolean(), nullable=True, server_default=sa.text("true")),
-        sa.Column("rollout_percentage", sa.Integer(), nullable=True, server_default=sa.text("100")),
+        sa.Column(
+            "is_feature_flag",
+            sa.Boolean(),
+            nullable=True,
+            server_default=sa.text("false"),
+        ),
+        sa.Column(
+            "is_enabled", sa.Boolean(), nullable=True, server_default=sa.text("true")
+        ),
+        sa.Column(
+            "rollout_percentage",
+            sa.Integer(),
+            nullable=True,
+            server_default=sa.text("100"),
+        ),
         sa.Column("updated_by", sa.String(length=255)),
         sa.Column("created_at", sa.DateTime(), nullable=True),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
@@ -164,7 +221,9 @@ def upgrade():
     )
 
     op.create_index("ix_system_config_config_key", "system_config", ["config_key"])
-    op.create_index("ix_config_key_enabled", "system_config", ["config_key", "is_enabled"])
+    op.create_index(
+        "ix_config_key_enabled", "system_config", ["config_key", "is_enabled"]
+    )
 
 
 def downgrade():

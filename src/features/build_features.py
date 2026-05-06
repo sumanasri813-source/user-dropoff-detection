@@ -6,7 +6,6 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-
 BASE_FEATURE_COLUMNS = [
     "days_signup_age",
     "recency_days",
@@ -25,7 +24,9 @@ def _validate_input_schema(df: pd.DataFrame) -> None:
     required = BASE_FEATURE_COLUMNS + [TARGET_COLUMN]
     missing_cols = [c for c in required if c not in df.columns]
     if missing_cols:
-        raise ValueError(f"Missing required columns for feature engineering: {missing_cols}")
+        raise ValueError(
+            f"Missing required columns for feature engineering: {missing_cols}"
+        )
 
 
 def _add_numeric_behavior_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -89,7 +90,9 @@ def engineer_features_for_inference(base_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def build_features(clean_data_path: str = "data/processed/clean_user_data.csv") -> pd.DataFrame:
+def build_features(
+    clean_data_path: str = "data/processed/clean_user_data.csv",
+) -> pd.DataFrame:
     """Create model-ready features from cleaned user behavior data."""
     df = pd.read_csv(clean_data_path)
     _validate_input_schema(df)

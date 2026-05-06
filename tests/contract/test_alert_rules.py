@@ -46,7 +46,7 @@ class AlertRulesTests(unittest.TestCase):
                             "threshold": 300,
                         }
                     ],
-                    throttle_minutes=5
+                    throttle_minutes=5,
                 )
                 self.assertIsNotNone(out)
                 out_path = Path(str(out))
@@ -72,15 +72,17 @@ class AlertRulesTests(unittest.TestCase):
                     "value": 999,
                     "threshold": 300,
                 }
-                
+
                 # First call should persist
                 out1 = alerts.persist_alerts([alert_obj], throttle_minutes=60)
                 self.assertIsNotNone(out1)
-                
+
                 # Second call with same alert and throttle_minutes=60 should NOT persist
                 out2 = alerts.persist_alerts([alert_obj], throttle_minutes=60)
-                self.assertIsNone(out2, "Duplicate alert within throttle window should not persist")
-                
+                self.assertIsNone(
+                    out2, "Duplicate alert within throttle window should not persist"
+                )
+
                 # Verify file has exactly 1 line (only first alert persisted)
                 out_path = Path(str(out1))
                 lines = out_path.read_text(encoding="utf-8").strip().splitlines()

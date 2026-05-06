@@ -23,24 +23,38 @@ class UserProfile(Base):
     device_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     os_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     region: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
-    predictions: Mapped[list[PredictionRecord]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    predictions: Mapped[list[PredictionRecord]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class PredictionRecord(Base):
     __tablename__ = "prediction_records"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("user_profiles.id"), nullable=True, index=True)
-    request_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user_profiles.id"), nullable=True, index=True
+    )
+    request_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
     dropoff_probability: Mapped[float] = mapped_column(Float)
     predicted_label: Mapped[int] = mapped_column(Integer)
     risk_level: Mapped[str] = mapped_column(String(20))
     threshold_used: Mapped[float] = mapped_column(Float)
     payload_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
 
     user: Mapped[UserProfile | None] = relationship(back_populates="predictions")
 
@@ -51,7 +65,9 @@ class RefreshToken(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     jti: Mapped[str] = mapped_column(String(128), unique=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user_profiles.id"), index=True)
-    issued_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    issued_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, index=True)
     revoked: Mapped[bool] = mapped_column(Integer, default=0)
 
@@ -72,4 +88,6 @@ class AuditLog(Base):
     ip_address: Mapped[str | None] = mapped_column(String(50), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )

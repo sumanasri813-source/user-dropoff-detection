@@ -1,7 +1,8 @@
-from flask import Flask, jsonify, request
+from pathlib import Path
+
 import joblib
 import pandas as pd
-from pathlib import Path
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -40,7 +41,9 @@ def predict():
                 {
                     "dropoff_probability": round(proba, 4),
                     "predicted_label": pred,
-                    "risk_level": "high" if proba >= 0.7 else "medium" if proba >= 0.4 else "low",
+                    "risk_level": (
+                        "high" if proba >= 0.7 else "medium" if proba >= 0.4 else "low"
+                    ),
                 }
             ),
             200,

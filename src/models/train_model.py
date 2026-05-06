@@ -10,7 +10,13 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import (
+    classification_report,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -19,6 +25,7 @@ TARGET_COLUMN = "dropoff_label"
 
 try:
     from src.utils.logger import get_logger
+
     logger = get_logger(__name__)
 except Exception:
     logger = None
@@ -43,7 +50,9 @@ def _infer_feature_types(df: pd.DataFrame) -> Tuple[List[str], List[str]]:
     return numeric_features, categorical_features
 
 
-def _build_preprocessor(numeric_features: List[str], categorical_features: List[str]) -> ColumnTransformer:
+def _build_preprocessor(
+    numeric_features: List[str], categorical_features: List[str]
+) -> ColumnTransformer:
     numeric_pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
@@ -66,7 +75,9 @@ def _build_preprocessor(numeric_features: List[str], categorical_features: List[
 
 def _get_model_candidates(random_seed: int) -> Dict[str, object]:
     models: Dict[str, object] = {
-        "logistic_regression": LogisticRegression(max_iter=2000, class_weight="balanced"),
+        "logistic_regression": LogisticRegression(
+            max_iter=2000, class_weight="balanced"
+        ),
         "random_forest": RandomForestClassifier(
             n_estimators=300,
             max_depth=12,
@@ -97,7 +108,9 @@ def _get_model_candidates(random_seed: int) -> Dict[str, object]:
     return models
 
 
-def _evaluate_pipeline(pipeline: Pipeline, X_test: pd.DataFrame, y_test: pd.Series) -> Dict[str, float]:
+def _evaluate_pipeline(
+    pipeline: Pipeline, X_test: pd.DataFrame, y_test: pd.Series
+) -> Dict[str, float]:
     y_pred = pipeline.predict(X_test)
     y_prob = pipeline.predict_proba(X_test)[:, 1]
     return {
@@ -111,12 +124,12 @@ def _evaluate_pipeline(pipeline: Pipeline, X_test: pd.DataFrame, y_test: pd.Seri
 def train_model(data_path: str = "data/processed/model_data.csv") -> Dict[str, object]:
     """Train multiple model candidates and persist the best. O(m*n*f) where m=models, n=samples, f=features."""
     random_seed = _load_random_seed()
-    
+
     if logger:
         logger.info("Starting model training", data_path=data_path, seed=random_seed)
-    
+
     df = pd.read_csv(data_path)
-    
+
     if logger:
         logger.info("Data loaded", rows=len(df), columns=len(df.columns))
 
@@ -188,7 +201,11 @@ def train_model(data_path: str = "data/processed/model_data.csv") -> Dict[str, o
     joblib.dump(best_model_pipeline, best_model_path)
     joblib.dump(best_model_pipeline, final_model_path)
 
-    comparison_df = pd.DataFrame(metrics_rows).sort_values("roc_auc", ascending=False).reset_index(drop=True)
+    comparison_df = (
+        pd.DataFrame(metrics_rows)
+        .sort_values("roc_auc", ascending=False)
+        .reset_index(drop=True)
+    )
     comparison_path = results_dir / "model_comparison.csv"
     comparison_df.to_csv(comparison_path, index=False)
 
@@ -237,10 +254,14 @@ def train_model(data_path: str = "data/processed/model_data.csv") -> Dict[str, o
 
 def main() -> None:
     results = train_model("data/processed/model_data.csv")
-    
+
     if logger:
-        logger.info("Training pipeline completed", best_model=results["best_model"], best_roc_auc=results["best_roc_auc"])
-    
+        logger.info(
+            "Training pipeline completed",
+            best_model=results["best_model"],
+            best_roc_auc=results["best_roc_auc"],
+        )
+
     print(f"Best model: {results['best_model']}")
     print(f"Best ROC-AUC: {results['best_roc_auc']:.4f}")
     print(f"Best model path: {results['best_model_path']}")

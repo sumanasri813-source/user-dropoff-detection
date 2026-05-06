@@ -5,45 +5,43 @@ Provides structured error responses, error tracking, and graceful degradation.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional
-
-import logging
-
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
 
 class ErrorCode(str, Enum):
     """Standardized error codes for API responses."""
-    
+
     # Validation errors (4xx)
     INVALID_INPUT = "INVALID_INPUT"
     MISSING_FIELD = "MISSING_FIELD"
     INVALID_RANGE = "INVALID_RANGE"
     INVALID_FORMAT = "INVALID_FORMAT"
-    
+
     # Database errors (5xx)
     DATABASE_CONNECTION_ERROR = "DATABASE_CONNECTION_ERROR"
     DATABASE_QUERY_ERROR = "DATABASE_QUERY_ERROR"
     DATABASE_TRANSACTION_ERROR = "DATABASE_TRANSACTION_ERROR"
-    
+
     # Model errors (5xx)
     MODEL_LOAD_ERROR = "MODEL_LOAD_ERROR"
     MODEL_PREDICTION_ERROR = "MODEL_PREDICTION_ERROR"
     MODEL_NOT_FOUND = "MODEL_NOT_FOUND"
-    
+
     # API errors (5xx)
     SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE"
     TIMEOUT_ERROR = "TIMEOUT_ERROR"
     RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED"
-    
+
     # Authentication errors (4xx)
     UNAUTHORIZED = "UNAUTHORIZED"
     INVALID_API_KEY = "INVALID_API_KEY"
     PERMISSION_DENIED = "PERMISSION_DENIED"
-    
+
     # System errors (5xx)
     INTERNAL_ERROR = "INTERNAL_ERROR"
     CIRCUIT_BREAKER_OPEN = "CIRCUIT_BREAKER_OPEN"
@@ -52,13 +50,13 @@ class ErrorCode(str, Enum):
 @dataclass
 class APIError:
     """Structured API error response."""
-    
+
     code: ErrorCode
     message: str
     status_code: int
     details: Dict[str, Any] | None = None
     request_id: str | None = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to JSON-serializable dict."""
         result = {
@@ -73,17 +71,18 @@ class APIError:
         if self.request_id:
             result["request_id"] = self.request_id
         return result
-    
+
     @staticmethod
     def _get_timestamp() -> str:
         """Get ISO format timestamp."""
         from datetime import datetime, timezone
+
         return datetime.now(timezone.utc).isoformat()
 
 
 class MLPipelineError(Exception):
     """Base exception for ML pipeline errors."""
-    
+
     def __init__(
         self,
         code: ErrorCode,
@@ -97,7 +96,7 @@ class MLPipelineError(Exception):
         self.status_code = status_code
         self.details = details or {}
         self.cause = cause
-        
+
         logger.error(
             f"{code.value}: {message}",
             extra={"details": self.details, "cause": str(cause) if cause else None},
@@ -107,7 +106,7 @@ class MLPipelineError(Exception):
 
 class ValidationError(MLPipelineError):
     """Validation error for input data."""
-    
+
     def __init__(self, message: str, details: Dict[str, Any] | None = None):
         super().__init__(
             code=ErrorCode.INVALID_INPUT,
@@ -119,7 +118,7 @@ class ValidationError(MLPipelineError):
 
 class MissingFieldError(MLPipelineError):
     """Error for missing required fields."""
-    
+
     def __init__(self, field_name: str, message: str | None = None):
         msg = message or f"Missing required field: {field_name}"
         super().__init__(
@@ -132,7 +131,7 @@ class MissingFieldError(MLPipelineError):
 
 class DatabaseError(MLPipelineError):
     """Base exception for database errors."""
-    
+
     def __init__(
         self,
         message: str,
@@ -149,7 +148,7 @@ class DatabaseError(MLPipelineError):
 
 class QueryError(DatabaseError):
     """Error executing database query."""
-    
+
     def __init__(self, query: str, cause: Exception | None = None):
         super().__init__(
             message=f"Database query failed: {query[:100]}...",
@@ -160,7 +159,7 @@ class QueryError(DatabaseError):
 
 class ModelError(MLPipelineError):
     """Base exception for model-related errors."""
-    
+
     def __init__(
         self,
         message: str,
@@ -177,7 +176,7 @@ class ModelError(MLPipelineError):
 
 class ModelLoadError(ModelError):
     """Error loading model file."""
-    
+
     def __init__(self, model_path: str, cause: Exception | None = None):
         super().__init__(
             message=f"Failed to load model from {model_path}",
@@ -188,7 +187,7 @@ class ModelLoadError(ModelError):
 
 class PredictionError(ModelError):
     """Error during model prediction."""
-    
+
     def __init__(self, message: str, cause: Exception | None = None):
         super().__init__(
             message=message,
@@ -199,7 +198,7 @@ class PredictionError(ModelError):
 
 class AuthenticationError(MLPipelineError):
     """Authentication/authorization error."""
-    
+
     def __init__(self, message: str, code: ErrorCode = ErrorCode.INVALID_API_KEY):
         super().__init__(
             code=code,
@@ -210,7 +209,7 @@ class AuthenticationError(MLPipelineError):
 
 class RateLimitError(MLPipelineError):
     """Rate limit exceeded error."""
-    
+
     def __init__(self, limit: int, window_seconds: int):
         super().__init__(
             code=ErrorCode.RATE_LIMIT_EXCEEDED,
@@ -222,7 +221,7 @@ class RateLimitError(MLPipelineError):
 
 class CircuitBreakerError(MLPipelineError):
     """Circuit breaker is open."""
-    
+
     def __init__(self, service_name: str):
         super().__init__(
             code=ErrorCode.CIRCUIT_BREAKER_OPEN,
@@ -234,7 +233,7 @@ class CircuitBreakerError(MLPipelineError):
 
 class TimeoutError(MLPipelineError):
     """Request timeout error."""
-    
+
     def __init__(self, operation: str, timeout_seconds: float):
         super().__init__(
             code=ErrorCode.TIMEOUT_ERROR,
@@ -257,7 +256,7 @@ def handle_error(exc: Exception, request_id: str = "") -> APIError:
             details=exc.details,
             request_id=request_id,
         )
-    
+
     # Fallback for unexpected errors
     logger.error(f"Unhandled exception: {exc}", exc_info=exc)
     return APIError(

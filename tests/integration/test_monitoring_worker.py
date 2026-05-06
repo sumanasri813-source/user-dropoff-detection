@@ -13,7 +13,9 @@ class MonitoringWorkerTests(unittest.TestCase):
         def cycle() -> None:
             calls.append(time.time())
 
-        worker = BackgroundMonitorWorker(cycle_fn=cycle, interval_seconds=0.1, worker_name="test-worker")
+        worker = BackgroundMonitorWorker(
+            cycle_fn=cycle, interval_seconds=0.1, worker_name="test-worker"
+        )
         worker.start()
         time.sleep(0.35)
         worker.stop(timeout_seconds=1.0)
@@ -29,7 +31,9 @@ class MonitoringWorkerTests(unittest.TestCase):
             if state["count"] == 1:
                 raise RuntimeError("first cycle fails")
 
-        worker = BackgroundMonitorWorker(cycle_fn=cycle, interval_seconds=0.1, worker_name="test-worker-fail")
+        worker = BackgroundMonitorWorker(
+            cycle_fn=cycle, interval_seconds=0.1, worker_name="test-worker-fail"
+        )
         worker.start()
         time.sleep(0.35)
         worker.stop(timeout_seconds=1.0)

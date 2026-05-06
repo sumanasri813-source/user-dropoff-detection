@@ -1,20 +1,13 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
-from src.db.models import PredictionRecord, UserProfile
+from src.db.models import AuditLog, PredictionRecord, RefreshToken, UserProfile
 from src.utils.auth import hash_password
-from src.db.models import RefreshToken
-from datetime import timedelta
-import uuid
-from sqlalchemy import and_
-from src.db.models import AuditLog
-from datetime import datetime, timezone
-import json
 
 
 def _user_to_dict(user: UserProfile) -> Dict[str, Any]:
@@ -42,7 +35,9 @@ def _prediction_to_dict(prediction: PredictionRecord) -> Dict[str, Any]:
         "risk_level": prediction.risk_level,
         "threshold_used": prediction.threshold_used,
         "payload_json": prediction.payload_json,
-        "created_at": prediction.created_at.isoformat() if prediction.created_at else None,
+        "created_at": (
+            prediction.created_at.isoformat() if prediction.created_at else None
+        ),
     }
 
 
@@ -88,7 +83,9 @@ def get_user(session: Session, user_id: int) -> Dict[str, Any] | None:
     return _user_to_dict(user) if user else None
 
 
-def update_user(session: Session, user_id: int, payload: Dict[str, Any]) -> Dict[str, Any] | None:
+def update_user(
+    session: Session, user_id: int, payload: Dict[str, Any]
+) -> Dict[str, Any] | None:
     user = session.query(UserProfile).filter(UserProfile.id == user_id).first()
     if not user:
         return None
@@ -125,7 +122,11 @@ def create_prediction_record(
     user_id = None
     external_user_id = payload.get("external_user_id")
     if external_user_id:
-        user = session.query(UserProfile).filter(UserProfile.external_user_id == str(external_user_id)).first()
+        user = (
+            session.query(UserProfile)
+            .filter(UserProfile.external_user_id == str(external_user_id))
+            .first()
+        )
         if user:
             user_id = user.id
 
@@ -144,12 +145,19 @@ def create_prediction_record(
     return _prediction_to_dict(record)
 
 
-def create_refresh_token_record(session: Session, user_id: int, jti: str, expires_at) -> Dict[str, Any]:
+def create_refresh_token_record(
+    session: Session, user_id: int, jti: str, expires_at
+) -> Dict[str, Any]:
     token = RefreshToken(user_id=user_id, jti=jti, expires_at=expires_at)
     session.add(token)
     session.commit()
     session.refresh(token)
-    return {"id": token.id, "jti": token.jti, "user_id": token.user_id, "expires_at": token.expires_at.isoformat() if token.expires_at else None}
+    return {
+        "id": token.id,
+        "jti": token.jti,
+        "user_id": token.user_id,
+        "expires_at": token.expires_at.isoformat() if token.expires_at else None,
+    }
 
 
 def get_refresh_token_record(session: Session, jti: str) -> RefreshToken | None:
@@ -193,13 +201,23 @@ def log_audit_event(
     session.add(entry)
     session.commit()
     session.refresh(entry)
-    return {"id": entry.id, "user_id": entry.user_id, "action": entry.action, "resource_type": entry.resource_type}
+    return {
+        "id": entry.id,
+        "user_id": entry.user_id,
+        "action": entry.action,
+        "resource_type": entry.resource_type,
+    }
 
 
 def cleanup_expired_refresh_tokens(session: Session) -> int:
     """Remove expired refresh token records and return count removed."""
     now = datetime.now(timezone.utc)
-    expired = session.query(RefreshToken).filter(RefreshToken.expires_at != None).filter(RefreshToken.expires_at < now).all()
+    expired = (
+        session.query(RefreshToken)
+        .filter(RefreshToken.expires_at.is_not(None))
+        .filter(RefreshToken.expires_at < now)
+        .all()
+    )
     count = 0
     for token in expired:
         session.delete(token)
@@ -230,22 +248,29 @@ def get_audit_logs(
     rows = query.offset(offset).limit(limit).all()
     results = []
     for r in rows:
-        results.append({
-            "id": r.id,
-            "user_id": r.user_id,
-            "action": r.action,
-            "resource_type": r.resource_type,
-            "resource_id": r.resource_id,
-            "changes_summary": r.changes_summary,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
-        })
+        results.append(
+            {
+                "id": r.id,
+                "user_id": r.user_id,
+                "action": r.action,
+                "resource_type": r.resource_type,
+                "resource_id": r.resource_id,
+                "changes_summary": r.changes_summary,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+        )
     return {"total": total, "logs": results}
 
 
 def cleanup_old_audit_logs(session: Session, retention_days: int = 90) -> int:
     """Delete audit log entries older than retention_days and return count removed."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=int(retention_days))
-    old = session.query(AuditLog).filter(AuditLog.created_at != None).filter(AuditLog.created_at < cutoff).all()
+    old = (
+        session.query(AuditLog)
+        .filter(AuditLog.created_at.is_not(None))
+        .filter(AuditLog.created_at < cutoff)
+        .all()
+    )
     count = 0
     for entry in old:
         session.delete(entry)
@@ -270,12 +295,17 @@ def list_predictions(
     risk_level: str | None = None,
     min_probability: float | None = None,
 ) -> List[Dict[str, Any]]:
-    """List predictions with optimized filtering. O(log n + k) with indexes on risk_level, created_at, and dropoff_probability."""
+    """List predictions with optimized filtering.
+
+    O(log n + k) with indexes on risk_level, created_at, and dropoff_probability.
+    """
     query = session.query(PredictionRecord)
     if risk_level:
         query = query.filter(PredictionRecord.risk_level == str(risk_level))
     if min_probability is not None:
-        query = query.filter(PredictionRecord.dropoff_probability >= float(min_probability))
+        query = query.filter(
+            PredictionRecord.dropoff_probability >= float(min_probability)
+        )
 
     # Index-based sorting on primary key for stable pagination - O(log n)
     rows = query.order_by(PredictionRecord.id.desc()).offset(offset).limit(limit).all()

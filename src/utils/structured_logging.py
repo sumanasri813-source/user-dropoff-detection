@@ -106,7 +106,9 @@ class StructuredLogger:
             payload_keys=list(payload.keys()),
         )
 
-    def log_api_error(self, request_id: str, endpoint: str, error: str, status_code: int):
+    def log_api_error(
+        self, request_id: str, endpoint: str, error: str, status_code: int
+    ):
         """Log API errors."""
         self.error(
             "api_error",

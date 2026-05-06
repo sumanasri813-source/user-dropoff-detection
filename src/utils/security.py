@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-from typing import Optional
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from src.utils.auth import load_jwt_config
 

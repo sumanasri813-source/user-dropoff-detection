@@ -20,6 +20,9 @@ plotly==5.24.1
 sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
 pymysql==1.1.1
+python-jose==3.5.0
+passlib>=1.7.4
+bcrypt==4.1.3
 
 # Contract/smoke validation (for API contract tests)
 jsonschema==4.23.0

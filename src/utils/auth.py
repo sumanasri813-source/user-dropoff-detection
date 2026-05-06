@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any, Callable, Mapping, Tuple
@@ -8,11 +9,8 @@ from typing import Any, Callable, Mapping, Tuple
 from flask import jsonify, request
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-import uuid
-from datetime import timedelta
-from typing import List
-from src.db.connection import get_session_factory
 
+from src.db.connection import get_session_factory
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -25,10 +23,14 @@ def load_security_config(config_path: str = "config.yaml") -> Tuple[bool, str | 
         from src.utils.config_loader import load_config
 
         cfg = load_config(config_path)
-        security = cfg.get("security", {}) if isinstance(cfg.get("security", {}), dict) else {}
+        security = (
+            cfg.get("security", {}) if isinstance(cfg.get("security", {}), dict) else {}
+        )
         required = bool(security.get("require_auth", False))
 
-        env_var_name = str(security.get("api_key_env_var", "API_KEY")).strip() or "API_KEY"
+        env_var_name = (
+            str(security.get("api_key_env_var", "API_KEY")).strip() or "API_KEY"
+        )
         key_from_env = os.getenv(env_var_name, "").strip()
         key_from_config = str(security.get("api_key", "")).strip()
         key = key_from_env or key_from_config or None
@@ -50,7 +52,10 @@ def create_api_key_guard(security_state_getter: Callable[[], Tuple[bool, str | N
             if api_key and candidate == api_key:
                 return view_fn(*args, **kwargs)
 
-            return jsonify({"error": "Unauthorized. Missing or invalid X-API-Key."}), 401
+            return (
+                jsonify({"error": "Unauthorized. Missing or invalid X-API-Key."}),
+                401,
+            )
 
         return wrapped
 
@@ -77,7 +82,9 @@ def load_jwt_config(config_path: str = "config.yaml") -> Tuple[str, str, int]:
         from src.utils.config_loader import load_config
 
         cfg = load_config(config_path)
-        security = cfg.get("security", {}) if isinstance(cfg.get("security", {}), dict) else {}
+        security = (
+            cfg.get("security", {}) if isinstance(cfg.get("security", {}), dict) else {}
+        )
 
         secret_key = (
             str(security.get("jwt_secret_key", "")).strip()
@@ -90,7 +97,9 @@ def load_jwt_config(config_path: str = "config.yaml") -> Tuple[str, str, int]:
     except Exception:
         pass
 
-    env_secret_key = os.getenv("JWT_SECRET_KEY", "").strip() or os.getenv("SECRET_KEY", "").strip()
+    env_secret_key = (
+        os.getenv("JWT_SECRET_KEY", "").strip() or os.getenv("SECRET_KEY", "").strip()
+    )
     env_algorithm = os.getenv("JWT_ALGORITHM", "").strip()
     env_expiration_hours = os.getenv("JWT_EXPIRATION_HOURS", "").strip()
 
@@ -118,12 +127,17 @@ def load_session_secret_key(config_path: str = "config.yaml") -> str:
         from src.utils.config_loader import load_config
 
         cfg = load_config(config_path)
-        security = cfg.get("security", {}) if isinstance(cfg.get("security", {}), dict) else {}
+        security = (
+            cfg.get("security", {}) if isinstance(cfg.get("security", {}), dict) else {}
+        )
         secret_key = str(security.get("session_secret_key", "")).strip() or secret_key
     except Exception:
         pass
 
-    env_secret_key = os.getenv("SESSION_SECRET_KEY", "").strip() or os.getenv("FLASK_SECRET_KEY", "").strip()
+    env_secret_key = (
+        os.getenv("SESSION_SECRET_KEY", "").strip()
+        or os.getenv("FLASK_SECRET_KEY", "").strip()
+    )
     if env_secret_key:
         secret_key = env_secret_key
 
@@ -156,7 +170,11 @@ def create_access_token(
     return jwt.encode(payload, secret_key, algorithm=algorithm)
 
 
-def create_refresh_token(user_id: int, expires_delta: timedelta | None = None, config_path: str = "config.yaml") -> str:
+def create_refresh_token(
+    user_id: int,
+    expires_delta: timedelta | None = None,
+    config_path: str = "config.yaml",
+) -> str:
     """Create a signed JWT refresh token and persist its jti in DB."""
     secret_key, algorithm, default_hours = load_jwt_config(config_path)
     now = datetime.now(timezone.utc)
@@ -177,17 +195,29 @@ def create_refresh_token(user_id: int, expires_delta: timedelta | None = None, c
     SessionLocal = get_session_factory()
     with SessionLocal() as session:
         from src.db.crud import create_refresh_token_record, log_audit_event
-        create_refresh_token_record(session, user_id=user_id, jti=jti, expires_at=expires_at)
+
+        create_refresh_token_record(
+            session, user_id=user_id, jti=jti, expires_at=expires_at
+        )
         try:
             # record audit event for issuance
-            log_audit_event(session, user_id=user_id, action="issue_refresh_token", resource_type="refresh_token", resource_id=None, changes_summary=f"jti={jti}")
+            log_audit_event(
+                session,
+                user_id=user_id,
+                action="issue_refresh_token",
+                resource_type="refresh_token",
+                resource_id=None,
+                changes_summary=f"jti={jti}",
+            )
         except Exception:
             pass
 
     return token
 
 
-def decode_refresh_token(token: str, config_path: str = "config.yaml") -> dict[str, Any]:
+def decode_refresh_token(
+    token: str, config_path: str = "config.yaml"
+) -> dict[str, Any]:
     secret_key, algorithm, _ = load_jwt_config(config_path)
     return jwt.decode(token, secret_key, algorithms=[algorithm])
 
@@ -247,12 +277,15 @@ def get_token_subject(token: str, config_path: str = "config.yaml") -> str | Non
     return str(subject) if subject is not None else None
 
 
-def create_token_or_key_guard(security_state_getter: Callable[[], Tuple[bool, str | None]]):
+def create_token_or_key_guard(
+    security_state_getter: Callable[[], Tuple[bool, str | None]]
+):
     """Create a guard that accepts either a valid X-API-Key or a Bearer JWT token.
 
     This allows existing API-key based clients to continue working while supporting
     token-based auth for user-backed endpoints.
     """
+
     def guard(view_fn: Callable):
         @wraps(view_fn)
         def wrapped(*args, **kwargs):
@@ -282,7 +315,12 @@ def create_token_or_key_guard(security_state_getter: Callable[[], Tuple[bool, st
                 except JWTError:
                     return jsonify({"error": "Invalid or expired token."}), 401
 
-            return jsonify({"error": "Unauthorized. Missing valid X-API-Key or Bearer token."}), 401
+            return (
+                jsonify(
+                    {"error": "Unauthorized. Missing valid X-API-Key or Bearer token."}
+                ),
+                401,
+            )
 
         return wrapped
 

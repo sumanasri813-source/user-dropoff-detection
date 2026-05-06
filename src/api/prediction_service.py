@@ -129,14 +129,14 @@ def _align_features_to_model(model: Any, df: pd.DataFrame) -> pd.DataFrame:
     expected_cols = [str(c) for c in expected_cols_raw]
     expected_set = set(expected_cols)
     df_cols_set = set(df.columns)
-    
+
     # Set difference for missing columns - O(k) instead of O(n*k) individual checks
     missing_cols = expected_set - df_cols_set
     aligned = df.copy()
     if missing_cols:
         for col in missing_cols:
             aligned[col] = 0.0
-    
+
     return cast(pd.DataFrame, aligned.loc[:, expected_cols])
 
 

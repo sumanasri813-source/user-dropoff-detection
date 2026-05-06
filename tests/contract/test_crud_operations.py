@@ -44,7 +44,11 @@ class CrudContractTests(unittest.TestCase):
         api_app_module.api_key = None
 
     def test_users_create_success(self) -> None:
-        payload = {"external_user_id": "user_001", "email": "user@example.com", "user_segment": "premium"}
+        payload = {
+            "external_user_id": "user_001",
+            "email": "user@example.com",
+            "user_segment": "premium",
+        }
         resp = self.client.post("/users", json=payload)
 
         self.assertEqual(resp.status_code, 201, f"Response: {resp.get_json()}")
@@ -75,8 +79,14 @@ class CrudContractTests(unittest.TestCase):
         self.assertEqual(len(body["users"]), 0)
 
     def test_users_list_with_data(self) -> None:
-        self.client.post("/users", json={"external_user_id": "user_001", "email": "user1@example.com"})
-        self.client.post("/users", json={"external_user_id": "user_002", "email": "user2@example.com"})
+        self.client.post(
+            "/users",
+            json={"external_user_id": "user_001", "email": "user1@example.com"},
+        )
+        self.client.post(
+            "/users",
+            json={"external_user_id": "user_002", "email": "user2@example.com"},
+        )
 
         resp = self.client.get("/users")
         self.assertEqual(resp.status_code, 200)
@@ -95,8 +105,12 @@ class CrudContractTests(unittest.TestCase):
         self.assertEqual(len(body["users"]), 2)
 
     def test_users_list_with_segment_filter(self) -> None:
-        self.client.post("/users", json={"external_user_id": "u1", "user_segment": "free"})
-        self.client.post("/users", json={"external_user_id": "u2", "user_segment": "premium"})
+        self.client.post(
+            "/users", json={"external_user_id": "u1", "user_segment": "free"}
+        )
+        self.client.post(
+            "/users", json={"external_user_id": "u2", "user_segment": "premium"}
+        )
 
         resp = self.client.get("/users?user_segment=premium")
         self.assertEqual(resp.status_code, 200)
@@ -105,7 +119,9 @@ class CrudContractTests(unittest.TestCase):
         self.assertEqual(body["users"][0]["user_segment"], "premium")
 
     def test_users_get_success(self) -> None:
-        created = self.client.post("/users", json={"external_user_id": "user_001", "email": "user@example.com"})
+        created = self.client.post(
+            "/users", json={"external_user_id": "user_001", "email": "user@example.com"}
+        )
         user_id = created.get_json()["id"]
 
         resp = self.client.get(f"/users/{user_id}")
@@ -120,10 +136,15 @@ class CrudContractTests(unittest.TestCase):
         self.assertIn("error", resp.get_json())
 
     def test_users_update_success(self) -> None:
-        created = self.client.post("/users", json={"external_user_id": "user_001", "email": "user@example.com"})
+        created = self.client.post(
+            "/users", json={"external_user_id": "user_001", "email": "user@example.com"}
+        )
         user_id = created.get_json()["id"]
 
-        resp = self.client.put(f"/users/{user_id}", json={"email": "newemail@example.com", "user_segment": "trial"})
+        resp = self.client.put(
+            f"/users/{user_id}",
+            json={"email": "newemail@example.com", "user_segment": "trial"},
+        )
         self.assertEqual(resp.status_code, 200)
         body = resp.get_json()
         self.assertEqual(body["email"], "newemail@example.com")
@@ -134,7 +155,9 @@ class CrudContractTests(unittest.TestCase):
         self.assertEqual(resp.status_code, 404)
 
     def test_users_delete_success(self) -> None:
-        created = self.client.post("/users", json={"external_user_id": "user_001", "email": "user@example.com"})
+        created = self.client.post(
+            "/users", json={"external_user_id": "user_001", "email": "user@example.com"}
+        )
         user_id = created.get_json()["id"]
 
         deleted = self.client.delete(f"/users/{user_id}")
@@ -156,7 +179,9 @@ class CrudContractTests(unittest.TestCase):
         self.assertIsInstance(body["predictions"], list)
 
     def test_predictions_list_with_filters(self) -> None:
-        self.client.post("/users", json={"external_user_id": "pred_user_1", "user_segment": "free"})
+        self.client.post(
+            "/users", json={"external_user_id": "pred_user_1", "user_segment": "free"}
+        )
 
         original_model = api_app_module.model
         original_predict_one = api_app_module.predict_one
@@ -217,17 +242,23 @@ class CrudContractTests(unittest.TestCase):
 
         health_unauthorized = self.client.get("/health")
         self.assertEqual(health_unauthorized.status_code, 401)
-        health_authorized = self.client.get("/health", headers={"X-API-Key": "test-key"})
+        health_authorized = self.client.get(
+            "/health", headers={"X-API-Key": "test-key"}
+        )
         self.assertEqual(health_authorized.status_code, 200)
 
         monitor_unauthorized = self.client.get("/monitor")
         self.assertEqual(monitor_unauthorized.status_code, 401)
-        monitor_authorized = self.client.get("/monitor", headers={"X-API-Key": "test-key"})
+        monitor_authorized = self.client.get(
+            "/monitor", headers={"X-API-Key": "test-key"}
+        )
         self.assertEqual(monitor_authorized.status_code, 200)
 
         persist_unauthorized = self.client.post("/monitor/persist")
         self.assertEqual(persist_unauthorized.status_code, 401)
-        persist_authorized = self.client.post("/monitor/persist", headers={"X-API-Key": "test-key"})
+        persist_authorized = self.client.post(
+            "/monitor/persist", headers={"X-API-Key": "test-key"}
+        )
         self.assertEqual(persist_authorized.status_code, 200)
 
     def test_users_crud_full_workflow(self) -> None:
@@ -249,7 +280,9 @@ class CrudContractTests(unittest.TestCase):
         self.assertEqual(get_resp.status_code, 200)
         self.assertEqual(get_resp.get_json()["external_user_id"], "workflow_user")
 
-        update_resp = self.client.put(f"/users/{user_id}", json={"user_segment": "premium", "region": "south"})
+        update_resp = self.client.put(
+            f"/users/{user_id}", json={"user_segment": "premium", "region": "south"}
+        )
         self.assertEqual(update_resp.status_code, 200)
         updated = update_resp.get_json()
         self.assertEqual(updated["user_segment"], "premium")

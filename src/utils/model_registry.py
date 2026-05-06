@@ -11,9 +11,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import pandas as pd
-
-
 MODELS_DIR = Path("models")
 REGISTRY_PATH = MODELS_DIR / "model_registry.json"
 
@@ -121,8 +118,14 @@ class ModelRegistry:
         """Get summary of registered models."""
         return {
             "total_models": len(self.models),
-            "latest_version": self.get_latest_model().version if self.get_latest_model() else None,
-            "best_model_roc_auc": self.get_best_model("roc_auc").version if self.get_best_model("roc_auc") else None,
+            "latest_version": (
+                self.get_latest_model().version if self.get_latest_model() else None
+            ),
+            "best_model_roc_auc": (
+                self.get_best_model("roc_auc").version
+                if self.get_best_model("roc_auc")
+                else None
+            ),
             "models": [
                 {
                     "version": m.version,

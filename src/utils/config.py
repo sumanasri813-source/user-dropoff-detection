@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import yaml
 
@@ -93,14 +93,18 @@ class ProductionConfig:
             return cls()
 
         with path.open("r", encoding="utf-8") as f:
-            raw_config = yaml.safe_load(f) or {}
+            _ = yaml.safe_load(f) or {}
 
         config = cls()
 
         # Override with environment variables
-        config.deployment.api_port = int(os.getenv("API_PORT", config.deployment.api_port))
+        config.deployment.api_port = int(
+            os.getenv("API_PORT", config.deployment.api_port)
+        )
         config.deployment.api_debug = os.getenv("API_DEBUG", "false").lower() == "true"
-        config.deployment.log_level = os.getenv("LOG_LEVEL", config.deployment.log_level)
+        config.deployment.log_level = os.getenv(
+            "LOG_LEVEL", config.deployment.log_level
+        )
 
         return config
 
@@ -112,8 +116,13 @@ class ProductionConfig:
                 "train_test_split": self.data.train_test_split,
                 "dropoff_inactive_days": self.data.dropoff_inactive_days,
             },
-            "model": {"models": self.model.models, "best_metric": self.model.best_metric},
-            "evaluation": {"threshold_candidates": self.evaluation.threshold_candidates},
+            "model": {
+                "models": self.model.models,
+                "best_metric": self.model.best_metric,
+            },
+            "evaluation": {
+                "threshold_candidates": self.evaluation.threshold_candidates
+            },
             "deployment": {
                 "api_port": self.deployment.api_port,
                 "log_level": self.deployment.log_level,

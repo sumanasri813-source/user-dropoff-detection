@@ -104,9 +104,7 @@ class PredictionResponse(BaseModel):
     """Schema for prediction response."""
 
     prediction: int = Field(description="Predicted label (0=retain, 1=dropoff)")
-    probability: float = Field(
-        description="Probability of dropoff (0.0-1.0)"
-    )
+    probability: float = Field(description="Probability of dropoff (0.0-1.0)")
     risk_level: Literal["low", "medium", "high"] = Field(
         description="Risk level classification"
     )

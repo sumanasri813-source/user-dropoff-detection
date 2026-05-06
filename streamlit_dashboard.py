@@ -19,7 +19,6 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 
-
 # ============================================================================
 # PAGE CONFIGURATION
 # ============================================================================
@@ -847,6 +846,7 @@ COLUMN_MAP = {
 # DATA AND API HELPERS
 # ============================================================================
 
+
 @st.cache_resource
 def get_api_session() -> requests.Session:
     session = requests.Session()
@@ -988,6 +988,7 @@ def uploaded_rows_to_records(df: pd.DataFrame) -> List[Dict[str, Any]]:
 # RENDER HELPERS
 # ============================================================================
 
+
 def render_kpi(label: str, value: str, copy: str, color: str = "blue") -> None:
     st.markdown(
         f"""
@@ -1024,7 +1025,9 @@ def render_callout(kind: str, title: str, body: str) -> None:
     )
 
 
-def render_signal_panel(api_online: bool, metrics_blob: Dict[str, Any], confusion: List[List[int]]) -> None:
+def render_signal_panel(
+    api_online: bool, metrics_blob: Dict[str, Any], confusion: List[List[int]]
+) -> None:
     status_class = "online" if api_online else "offline"
     status_text = "API Live" if api_online else "API Offline"
     st.markdown(
@@ -1292,11 +1295,26 @@ if page == "Command Center":
 
     k1, k2, k3, k4 = st.columns(4)
     with k1:
-        render_kpi("ROC-AUC", f"{metric_value(metrics_blob, 'roc_auc', 0.9731):.3f}", "Separation quality.", "blue")
+        render_kpi(
+            "ROC-AUC",
+            f"{metric_value(metrics_blob, 'roc_auc', 0.9731):.3f}",
+            "Separation quality.",
+            "blue",
+        )
     with k2:
-        render_kpi("Recall", f"{metric_value(metrics_blob, 'recall', 0.9178):.1%}", "Risk capture.", "green")
+        render_kpi(
+            "Recall",
+            f"{metric_value(metrics_blob, 'recall', 0.9178):.1%}",
+            "Risk capture.",
+            "green",
+        )
     with k3:
-        render_kpi("Value", f"${metric_value(metrics_blob, 'business_value', 584850):,.0f}", "Retention impact.", "amber")
+        render_kpi(
+            "Value",
+            f"${metric_value(metrics_blob, 'business_value', 584850):,.0f}",
+            "Retention impact.",
+            "amber",
+        )
     with k4:
         render_kpi("Flagged", f"{int(confusion[1][1]):,}", "Users found.", "rose")
 
@@ -1399,7 +1417,9 @@ elif page == "Production Tracking":
     with p3:
         render_kpi("ML Scoring", "API", "Real-time or scheduled scoring.", "green")
     with p4:
-        render_kpi("Dashboard", "Insights", "Counts, filters, high-risk users.", "amber")
+        render_kpi(
+            "Dashboard", "Insights", "Counts, filters, high-risk users.", "amber"
+        )
 
     st.markdown(
         """
@@ -1464,10 +1484,22 @@ elif page == "Production Tracking":
                 {"Feature": "days_signup_age", "Source": "user signup date"},
                 {"Feature": "recency_days", "Source": "latest event timestamp"},
                 {"Feature": "frequency_total", "Source": "session/login count"},
-                {"Feature": "session_duration_avg", "Source": "session start and end time"},
-                {"Feature": "feature_count_used", "Source": "unique features/events used"},
-                {"Feature": "device_type / os_type", "Source": "browser or app device metadata"},
-                {"Feature": "user_segment / region", "Source": "user profile or delivery location"},
+                {
+                    "Feature": "session_duration_avg",
+                    "Source": "session start and end time",
+                },
+                {
+                    "Feature": "feature_count_used",
+                    "Source": "unique features/events used",
+                },
+                {
+                    "Feature": "device_type / os_type",
+                    "Source": "browser or app device metadata",
+                },
+                {
+                    "Feature": "user_segment / region",
+                    "Source": "user profile or delivery location",
+                },
             ]
         )
         st.dataframe(feature_sources, use_container_width=True, hide_index=True)
@@ -1483,10 +1515,22 @@ elif page == "Production Tracking":
     st.markdown("### Managing Large User Volume")
     scale_df = pd.DataFrame(
         [
-            {"Layer": "Event tracking", "Production Use": "Append every user action to an events table or stream."},
-            {"Layer": "Feature generation", "Production Use": "Aggregate events per user every hour or every day."},
-            {"Layer": "Batch prediction", "Production Use": "Score lakhs or crores of users using /predict-batch or scheduled jobs."},
-            {"Layer": "Dashboard", "Production Use": "Show summaries, filters, segments, regions, and high-risk users only."},
+            {
+                "Layer": "Event tracking",
+                "Production Use": "Append every user action to an events table or stream.",
+            },
+            {
+                "Layer": "Feature generation",
+                "Production Use": "Aggregate events per user every hour or every day.",
+            },
+            {
+                "Layer": "Batch prediction",
+                "Production Use": "Score lakhs or crores of users using /predict-batch or scheduled jobs.",
+            },
+            {
+                "Layer": "Dashboard",
+                "Production Use": "Show summaries, filters, segments, regions, and high-risk users only.",
+            },
         ]
     )
     st.dataframe(scale_df, use_container_width=True, hide_index=True)
@@ -1514,7 +1558,11 @@ elif page == "Production Tracking":
                 with text_col:
                     st.metric("Profile", run_profile)
                     st.metric("Drop-off probability", f"{probability * 100:.1f}%")
-                    render_callout(risk_kind(probability), classify_risk(probability), "API prediction test completed.")
+                    render_callout(
+                        risk_kind(probability),
+                        classify_risk(probability),
+                        "API prediction test completed.",
+                    )
             else:
                 st.error(f"Prediction failed: {msg}")
 
@@ -1529,7 +1577,14 @@ elif page == "Model Intelligence":
 
     metric_df = pd.DataFrame(
         {
-            "Metric": ["Accuracy", "Precision", "Recall", "F1 Score", "ROC-AUC", "PR-AUC"],
+            "Metric": [
+                "Accuracy",
+                "Precision",
+                "Recall",
+                "F1 Score",
+                "ROC-AUC",
+                "PR-AUC",
+            ],
             "Score": [
                 metric_value(metrics_blob, "accuracy", 0.9136),
                 metric_value(metrics_blob, "precision", 0.8814),
@@ -1565,7 +1620,9 @@ elif page == "Model Intelligence":
                 textposition="auto",
             )
         )
-        fig.update_layout(barmode="group", yaxis_tickformat=".0%", yaxis_range=[0, 1.05])
+        fig.update_layout(
+            barmode="group", yaxis_tickformat=".0%", yaxis_range=[0, 1.05]
+        )
         st.plotly_chart(chart_layout(fig, 335), use_container_width=True)
     with top_right:
         tn, fp = confusion[0]
@@ -1591,7 +1648,11 @@ elif page == "Model Intelligence":
     lower_left, lower_right = st.columns(2)
     with lower_left:
         if threshold_df.empty:
-            render_callout("warning", "Threshold data missing", "results/threshold_analysis.csv was not found.")
+            render_callout(
+                "warning",
+                "Threshold data missing",
+                "results/threshold_analysis.csv was not found.",
+            )
         else:
             threshold_long = threshold_df.melt(
                 id_vars=["threshold"],
@@ -1605,7 +1666,11 @@ elif page == "Model Intelligence":
                 y="Score",
                 color="Metric",
                 markers=True,
-                color_discrete_map={"precision": "#2563eb", "recall": "#059669", "f1": "#d97706"},
+                color_discrete_map={
+                    "precision": "#2563eb",
+                    "recall": "#059669",
+                    "f1": "#d97706",
+                },
                 title="Threshold trade-off",
             )
             fig_threshold.update_layout(yaxis_tickformat=".0%")
@@ -1637,12 +1702,16 @@ elif page == "Model Intelligence":
             color_continuous_scale="Teal",
             title="Feature influence",
         )
-        fig_importance.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
+        fig_importance.update_layout(
+            yaxis={"categoryorder": "total ascending"}, showlegend=False
+        )
         st.plotly_chart(chart_layout(fig_importance, 340), use_container_width=True)
 
     if not model_df.empty:
         display_model_df = model_df.copy()
-        display_model_df["model"] = display_model_df["model"].str.replace("_", " ").str.title()
+        display_model_df["model"] = (
+            display_model_df["model"].str.replace("_", " ").str.title()
+        )
         st.dataframe(display_model_df, use_container_width=True, hide_index=True)
 
 
@@ -1652,7 +1721,9 @@ elif page == "Model Intelligence":
 
 elif page == "Batch Scoring":
     st.markdown("## Batch Scoring")
-    st.caption("CSV upload, API-backed batch scoring, and exportable prediction reports.")
+    st.caption(
+        "CSV upload, API-backed batch scoring, and exportable prediction reports."
+    )
 
     sample_df = pd.DataFrame(
         [
@@ -1705,22 +1776,36 @@ elif page == "Batch Scoring":
             except ValueError as exc:
                 st.error(str(exc))
             else:
-                success, result, msg = call_api("/predict-batch", "POST", {"records": records})
+                success, result, msg = call_api(
+                    "/predict-batch", "POST", {"records": records}
+                )
                 if not success:
                     st.error(f"Batch prediction failed: {msg}")
                 else:
                     predictions = pd.DataFrame(result.get("predictions", []))
                     if predictions.empty:
-                        render_callout("warning", "No predictions returned", "Review API validation errors below.")
+                        render_callout(
+                            "warning",
+                            "No predictions returned",
+                            "Review API validation errors below.",
+                        )
                     else:
                         enriched = uploaded_df.copy()
-                        enriched["dropoff_probability"] = predictions["dropoff_probability"].values
+                        enriched["dropoff_probability"] = predictions[
+                            "dropoff_probability"
+                        ].values
                         enriched["risk_level"] = predictions["risk_level"].values
-                        enriched["predicted_label"] = predictions["predicted_label"].values
-                        high_risk_count = int((enriched["dropoff_probability"] >= 0.67).sum())
+                        enriched["predicted_label"] = predictions[
+                            "predicted_label"
+                        ].values
+                        high_risk_count = int(
+                            (enriched["dropoff_probability"] >= 0.67).sum()
+                        )
                         st.metric("Processed users", len(enriched))
                         st.metric("High-risk users", high_risk_count)
-                        st.dataframe(enriched, use_container_width=True, hide_index=True)
+                        st.dataframe(
+                            enriched, use_container_width=True, hide_index=True
+                        )
 
                         export1, export2 = st.columns(2)
                         with export1:
@@ -1734,7 +1819,9 @@ elif page == "Batch Scoring":
                         with export2:
                             st.download_button(
                                 "Download scored JSON",
-                                enriched.to_json(orient="records", indent=2).encode("utf-8"),
+                                enriched.to_json(orient="records", indent=2).encode(
+                                    "utf-8"
+                                ),
                                 "dropoff_predictions.json",
                                 "application/json",
                                 use_container_width=True,
@@ -1743,7 +1830,11 @@ elif page == "Batch Scoring":
                     errors = result.get("errors", [])
                     if errors:
                         st.warning(f"{len(errors)} rows failed validation.")
-                        st.dataframe(pd.DataFrame(errors), use_container_width=True, hide_index=True)
+                        st.dataframe(
+                            pd.DataFrame(errors),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
 
 
 # ============================================================================
@@ -1756,11 +1847,26 @@ elif page == "System Health":
 
     ready1, ready2, ready3 = st.columns(3)
     with ready1:
-        render_kpi("API Layer", "Flask", "Health, prediction, batch scoring, monitoring, and records.", "blue")
+        render_kpi(
+            "API Layer",
+            "Flask",
+            "Health, prediction, batch scoring, monitoring, and records.",
+            "blue",
+        )
     with ready2:
-        render_kpi("ML Layer", "Model", "Feature engineering, persisted model, and evaluation outputs.", "teal")
+        render_kpi(
+            "ML Layer",
+            "Model",
+            "Feature engineering, persisted model, and evaluation outputs.",
+            "teal",
+        )
     with ready3:
-        render_kpi("Dashboard", "Streamlit", "Interactive scoring, model evidence, and exports.", "green")
+        render_kpi(
+            "Dashboard",
+            "Streamlit",
+            "Interactive scoring, model evidence, and exports.",
+            "green",
+        )
 
     monitor_col, deploy_col = st.columns(2)
     with monitor_col:
