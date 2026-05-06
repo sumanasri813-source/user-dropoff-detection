@@ -5,12 +5,15 @@ import json
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
+import os
 
 import yaml
 
 
 THRESHOLDS_PATH = Path("mlops") / "ci_cd" / "quality_gates" / "thresholds.yaml"
 ALERTS_PATH = Path("mlops") / "monitoring" / "alerts" / "alerts.jsonl"
+ALERTS_RETENTION_DAYS = 30
+ALERTS_MAX_RECORDS = 2000
 
 # Alert dedup state: maps alert_type -> (hash, timestamp)
 _last_persisted_alert: Dict[str, tuple[str, datetime]] = {}
@@ -50,7 +53,29 @@ def _compute_alert_hash(alert: Dict[str, Any]) -> str:
     """Compute a hash of alert content for dedup detection."""
     # Include type, metric, and value in hash to detect same alert state
     keys = ["type", "metric", "value", "threshold"]
-    content = json.dumps({k: alert.get(k) for k in keys}, sort_keys=True, ensure_ascii=True)
+    # Normalize numeric values to reduce noise from minor fluctuations
+    normalized: Dict[str, Any] = {}
+    for k in keys:
+        v = alert.get(k)
+        if isinstance(v, (int, float)):
+            # Bucket latency metrics more coarsely to avoid jitter-driven churn
+            metric_name = alert.get("metric", "")
+            try:
+                fv = float(v)
+            except Exception:
+                normalized[k] = v
+                continue
+
+            if isinstance(metric_name, str) and "latency" in metric_name:
+                # Bucket latency into 100ms bins, rounded down to reduce jitter churn.
+                normalized[k] = int(fv // 100.0) * 100
+            else:
+                # Round floats to 2 decimal places for other metrics
+                normalized[k] = round(fv, 2)
+        else:
+            normalized[k] = v
+
+    content = json.dumps(normalized, sort_keys=True, ensure_ascii=True)
     return hashlib.sha256(content.encode()).hexdigest()
 
 
@@ -87,6 +112,54 @@ def _should_persist_alert(alert: Dict[str, Any], throttle_minutes: int) -> bool:
 
     # Duplicate within throttle window; skip
     return False
+
+
+def _prune_alert_history() -> None:
+    """Keep the alert JSONL store bounded by age and record count."""
+    if not ALERTS_PATH.exists() or ALERTS_PATH.stat().st_size == 0:
+        return
+
+    try:
+        with ALERTS_PATH.open("r", encoding="utf-8") as f:
+            lines = [line.rstrip("\n") for line in f if line.strip()]
+    except Exception:
+        return
+
+    if not lines:
+        return
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=ALERTS_RETENTION_DAYS)
+    retained: List[str] = []
+
+    for line in lines:
+        try:
+            record = json.loads(line)
+            timestamp_raw = record.get("timestamp")
+            if timestamp_raw:
+                record_time = datetime.fromisoformat(str(timestamp_raw))
+                if record_time.tzinfo is None:
+                    record_time = record_time.replace(tzinfo=timezone.utc)
+                else:
+                    record_time = record_time.astimezone(timezone.utc)
+                if record_time >= cutoff:
+                    retained.append(line)
+                continue
+        except Exception:
+            # Keep malformed lines rather than dropping potentially useful history.
+            retained.append(line)
+
+    if len(retained) > ALERTS_MAX_RECORDS:
+        retained = retained[-ALERTS_MAX_RECORDS:]
+
+    if len(retained) == len(lines):
+        return
+
+    tmp_path = ALERTS_PATH.with_suffix(".jsonl.tmp")
+    ALERTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with tmp_path.open("w", encoding="utf-8") as f:
+        for line in retained:
+            f.write(line + "\n")
+    tmp_path.replace(ALERTS_PATH)
 
 
 def evaluate_alert_rules(snapshot: Dict[str, Any], health_status: str) -> List[Dict[str, Any]]:
@@ -138,13 +211,13 @@ def evaluate_alert_rules(snapshot: Dict[str, Any], health_status: str) -> List[D
     return alerts
 
 
-def persist_alerts(alerts: List[Dict[str, Any]], throttle_minutes: int = 5) -> str | None:
+def persist_alerts(alerts: List[Dict[str, Any]], throttle_minutes: int = 10) -> str | None:
     """
     Persist alerts to JSONL file with dedup/throttle logic.
     
     Args:
         alerts: list of alert dicts
-        throttle_minutes: minutes to throttle repeated identical alerts (default: 5)
+        throttle_minutes: minutes to throttle repeated identical alerts (default: 10)
     
     Returns:
         path to alerts file if any alerts persisted, None otherwise
@@ -152,8 +225,54 @@ def persist_alerts(alerts: List[Dict[str, Any]], throttle_minutes: int = 5) -> s
     if not alerts:
         return None
 
-    # Filter alerts through dedup logic
+    # Filter alerts through dedup logic (in-process)
     alerts_to_persist = [alert for alert in alerts if _should_persist_alert(alert, throttle_minutes)]
+
+    # Cross-process dedup: check the last persisted alert on disk and skip
+    # persisting if the same alert (by computed hash) was written within the
+    # throttle window by another process.
+    try:
+        if ALERTS_PATH.exists() and ALERTS_PATH.stat().st_size > 0:
+            last_line = None
+            with ALERTS_PATH.open("r", encoding="utf-8") as f:
+                for line in reversed(f.readlines()):
+                    if line.strip():
+                        last_line = line.strip()
+                        break
+
+            if last_line:
+                last_record = json.loads(last_line)
+                last_type = last_record.get("type", "unknown")
+                last_hash = _compute_alert_hash(last_record)
+                last_time = None
+                try:
+                    last_time = datetime.fromisoformat(last_record.get("timestamp"))
+                except Exception:
+                    last_time = None
+
+                throttle_window = timedelta(minutes=throttle_minutes)
+                now = datetime.now(timezone.utc)
+
+                filtered = []
+                for alert in alerts_to_persist:
+                    try:
+                        ahash = _compute_alert_hash(alert)
+                        atype = alert.get("type", "unknown")
+                    except Exception:
+                        filtered.append(alert)
+                        continue
+
+                    # If last persisted record matches this alert and is within
+                    # throttle window, skip it (cross-process dedup)
+                    if last_time is not None and atype == last_type and ahash == last_hash and (now - last_time) < throttle_window:
+                        continue
+
+                    filtered.append(alert)
+
+                alerts_to_persist = filtered
+    except Exception:
+        # If cross-process check fails for any reason, fall back to in-process logic
+        pass
 
     if not alerts_to_persist:
         return None
@@ -166,5 +285,7 @@ def persist_alerts(alerts: List[Dict[str, Any]], throttle_minutes: int = 5) -> s
                 **alert,
             }
             f.write(json.dumps(payload, ensure_ascii=True) + "\n")
+
+    _prune_alert_history()
 
     return str(ALERTS_PATH)

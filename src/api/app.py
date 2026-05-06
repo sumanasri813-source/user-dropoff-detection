@@ -91,7 +91,7 @@ model: Any = None
 threshold: float = 0.5
 risk_levels: Dict[str, float] = {"high": 0.7, "medium": 0.4, "low": 0.0}
 monitor_worker: BackgroundMonitorWorker | None = None
-alert_throttle_minutes: int = 5
+alert_throttle_minutes: int = 15
 require_auth: bool = False
 api_key: str | None = None
 SessionLocal = get_session_factory()
@@ -247,7 +247,11 @@ def run_monitoring_cycle() -> None:
     alerts = evaluate_alert_rules(collector.get_api_snapshot(), health_status=health_status)
     alert_path = persist_alerts(alerts, throttle_minutes=alert_throttle_minutes)
     if alert_path and alerts:
-        logger.warning("alerts_triggered", alert_count=len(alerts), alert_path=alert_path)
+        # In development/local runs we prefer INFO to avoid noisy WARNINGs.
+        if is_production:
+            logger.warning("alerts_triggered", alert_count=len(alerts), alert_path=alert_path)
+        else:
+            logger.info("alerts_triggered", alert_count=len(alerts), alert_path=alert_path)
     # Cleanup expired refresh tokens periodically (best-effort)
     try:
         from src.db.crud import cleanup_expired_refresh_tokens, cleanup_old_audit_logs
@@ -341,7 +345,11 @@ def after_request_hooks(response):
     )
 
     try:
-        run_monitoring_cycle()
+        # Don't run the full monitoring cycle on every request when a background
+        # monitor worker is already running — this avoids duplicate alert
+        # evaluation and noisy repeated `alerts_triggered` log entries.
+        if not (monitor_worker and monitor_worker.is_running()):
+            run_monitoring_cycle()
     except Exception as monitor_exc:
         logger.error("monitoring_hook_failed", error=str(monitor_exc))
 
