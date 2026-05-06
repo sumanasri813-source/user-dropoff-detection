@@ -1,7 +1,7 @@
 # Core Data Science Libraries
 pandas==2.2.2
 numpy==1.26.4
-scikit-learn==1.8.0
+scikit-learn==1.7.2
 
 # Visualization
 matplotlib==3.9.0
@@ -23,7 +23,7 @@ alembic==1.14.0
 redis==5.0.1
 fastapi==0.115.0
 uvicorn==0.30.0
-python-jose==3.6.0
+python-jose==3.5.0
 passlib>=1.7.4
 bcrypt==4.1.3
 
