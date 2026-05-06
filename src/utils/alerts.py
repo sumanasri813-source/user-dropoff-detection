@@ -67,8 +67,8 @@ def _compute_alert_hash(alert: Dict[str, Any]) -> str:
                 continue
 
             if isinstance(metric_name, str) and "latency" in metric_name:
-                # Bucket latency into 100ms bins, rounded down to reduce jitter churn.
-                normalized[k] = int(fv // 100.0) * 100
+                # Bucket latency into 200ms bins (increased from 100ms), rounded down to reduce jitter churn.
+                normalized[k] = int(fv // 200.0) * 200
             else:
                 # Round floats to 2 decimal places for other metrics
                 normalized[k] = round(fv, 2)
@@ -211,7 +211,7 @@ def evaluate_alert_rules(snapshot: Dict[str, Any], health_status: str) -> List[D
     return alerts
 
 
-def persist_alerts(alerts: List[Dict[str, Any]], throttle_minutes: int = 10) -> str | None:
+def persist_alerts(alerts: List[Dict[str, Any]], throttle_minutes: int = 15) -> str | None:
     """
     Persist alerts to JSONL file with dedup/throttle logic.
     
