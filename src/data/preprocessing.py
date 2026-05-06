@@ -7,8 +7,12 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
-from src.data.data_loader import (CATEGORICAL_COLUMNS, NUMERIC_COLUMNS,
-                                  TARGET_COLUMN, load_raw_data)
+from src.data.data_loader import (
+    CATEGORICAL_COLUMNS,
+    NUMERIC_COLUMNS,
+    TARGET_COLUMN,
+    load_raw_data,
+)
 
 ALLOWED_DEVICE_TYPE = {"mobile", "desktop", "tablet"}
 ALLOWED_OS_TYPE = {"windows", "mac", "android", "ios", "linux"}

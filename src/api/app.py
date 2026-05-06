@@ -7,8 +7,16 @@ import uuid
 from functools import wraps
 from typing import Any, Dict
 
-from flask import (Flask, g, jsonify, make_response, redirect, render_template,
-                   request, send_from_directory)
+from flask import (
+    Flask,
+    g,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+)
 from flask import session as flask_session
 from flask import url_for
 from jose import JWTError
@@ -16,22 +24,42 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import HTTPException
 
-from src.api.prediction_service import (load_decision_threshold, load_model,
-                                        load_risk_levels, predict_batch,
-                                        predict_one, validate_payload)
+from src.api.prediction_service import (
+    load_decision_threshold,
+    load_model,
+    load_risk_levels,
+    predict_batch,
+    predict_one,
+    validate_payload,
+)
 from src.db.connection import get_session_factory, init_database
-from src.db.crud import (create_prediction_record, create_user, delete_user,
-                         get_audit_logs, get_refresh_token_record, get_user,
-                         list_predictions, list_users, revoke_refresh_token,
-                         update_user)
+from src.db.crud import (
+    create_prediction_record,
+    create_user,
+    delete_user,
+    get_audit_logs,
+    get_refresh_token_record,
+    get_user,
+    list_predictions,
+    list_users,
+    revoke_refresh_token,
+    update_user,
+)
 from src.db.models import UserProfile
 from src.utils.alerts import evaluate_alert_rules, persist_alerts
-from src.utils.auth import (create_access_token, create_api_key_guard,
-                            create_refresh_token, create_token_or_key_guard,
-                            decode_access_token, decode_refresh_token,
-                            load_jwt_config, load_security_config,
-                            load_session_secret_key, require_role,
-                            verify_password)
+from src.utils.auth import (
+    create_access_token,
+    create_api_key_guard,
+    create_refresh_token,
+    create_token_or_key_guard,
+    decode_access_token,
+    decode_refresh_token,
+    load_jwt_config,
+    load_security_config,
+    load_session_secret_key,
+    require_role,
+    verify_password,
+)
 from src.utils.health import HealthChecker
 from src.utils.logger import get_logger
 from src.utils.metrics import get_collector, request_id_var
@@ -42,11 +70,18 @@ try:
     from sentry_sdk.integrations.flask import FlaskIntegration  # type: ignore
 except Exception:
     sentry_sdk = None
-from src.utils.errors import (DatabaseError, MLPipelineError, RateLimitError,
-                              handle_error)
+from src.utils.errors import (
+    DatabaseError,
+    MLPipelineError,
+    RateLimitError,
+    handle_error,
+)
 from src.utils.resilience import PerKeyRateLimiter, with_circuit_breaker
-from src.utils.runtime_config import (load_api_config, load_model_path,
-                                      load_monitoring_config)
+from src.utils.runtime_config import (
+    load_api_config,
+    load_model_path,
+    load_monitoring_config,
+)
 
 # production mode detection for security hardening
 is_production = (
@@ -288,8 +323,7 @@ def run_monitoring_cycle() -> None:
             )
     # Cleanup expired refresh tokens periodically (best-effort)
     try:
-        from src.db.crud import (cleanup_expired_refresh_tokens,
-                                 cleanup_old_audit_logs)
+        from src.db.crud import cleanup_expired_refresh_tokens, cleanup_old_audit_logs
 
         with SessionLocal() as session:
             removed = cleanup_expired_refresh_tokens(session)

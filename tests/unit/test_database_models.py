@@ -2,8 +2,16 @@ from __future__ import annotations
 
 import unittest
 
-from src.database import (APICall, AuditLog, Base, DatabaseConfig,
-                          ModelMetrics, Prediction, SystemConfig, User)
+from src.database import (
+    APICall,
+    AuditLog,
+    Base,
+    DatabaseConfig,
+    ModelMetrics,
+    Prediction,
+    SystemConfig,
+    User,
+)
 
 
 class DatabaseModelTests(unittest.TestCase):

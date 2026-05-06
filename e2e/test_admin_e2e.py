@@ -2,7 +2,11 @@ import os
 
 import pytest
 import requests
-from playwright.sync_api import sync_playwright
+
+playwright_sync_api = pytest.importorskip(
+    "playwright.sync_api", reason="playwright is not installed in this CI job"
+)
+sync_playwright = playwright_sync_api.sync_playwright
 
 BASE = os.getenv("E2E_BASE_URL", "http://localhost:8000")
 ADMIN_USER = os.getenv("E2E_ADMIN_USER", "admin@example.com")

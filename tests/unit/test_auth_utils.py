@@ -6,9 +6,14 @@ from datetime import timedelta
 
 from jose import JWTError
 
-from src.utils.auth import (create_access_token, decode_access_token,
-                            get_token_subject, hash_password, load_jwt_config,
-                            verify_password)
+from src.utils.auth import (
+    create_access_token,
+    decode_access_token,
+    get_token_subject,
+    hash_password,
+    load_jwt_config,
+    verify_password,
+)
 
 
 class AuthUtilityTests(unittest.TestCase):

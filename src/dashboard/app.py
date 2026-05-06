@@ -8,10 +8,15 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from src.api.prediction_service import (FEATURE_KEYS, load_decision_threshold,
-                                        load_model, load_risk_levels,
-                                        predict_batch, predict_one,
-                                        validate_payload)
+from src.api.prediction_service import (
+    FEATURE_KEYS,
+    load_decision_threshold,
+    load_model,
+    load_risk_levels,
+    predict_batch,
+    predict_one,
+    validate_payload,
+)
 
 st.set_page_config(
     page_title="Silent User Drop-Off Detection",
