@@ -7,16 +7,9 @@ from typing import Dict, List
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.metrics import (
-    accuracy_score,
-    average_precision_score,
-    classification_report,
-    confusion_matrix,
-    f1_score,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-)
+from sklearn.metrics import (accuracy_score, average_precision_score,
+                             classification_report, confusion_matrix, f1_score,
+                             precision_score, recall_score, roc_auc_score)
 
 TARGET_COLUMN = "dropoff_label"
 
@@ -34,10 +27,18 @@ def _load_config_defaults() -> Dict[str, object]:
 
         cfg = load_config("config.yaml")
         eval_cfg = cfg.get("evaluation", {})
-        defaults["threshold_candidates"] = eval_cfg.get("threshold_range", defaults["threshold_candidates"])
-        defaults["cost_false_positive"] = eval_cfg.get("cost_false_positive", defaults["cost_false_positive"])
-        defaults["cost_false_negative"] = eval_cfg.get("cost_false_negative", defaults["cost_false_negative"])
-        defaults["benefit_true_positive"] = eval_cfg.get("benefit_true_positive", defaults["benefit_true_positive"])
+        defaults["threshold_candidates"] = eval_cfg.get(
+            "threshold_range", defaults["threshold_candidates"]
+        )
+        defaults["cost_false_positive"] = eval_cfg.get(
+            "cost_false_positive", defaults["cost_false_positive"]
+        )
+        defaults["cost_false_negative"] = eval_cfg.get(
+            "cost_false_negative", defaults["cost_false_negative"]
+        )
+        defaults["benefit_true_positive"] = eval_cfg.get(
+            "benefit_true_positive", defaults["benefit_true_positive"]
+        )
     except Exception:
         pass
 
@@ -55,10 +56,14 @@ def _safe_predict_proba(model: object, X: pd.DataFrame) -> np.ndarray:
             return np.full_like(scores, 0.5, dtype=float)
         return (scores - min_s) / (max_s - min_s)
 
-    raise ValueError("Model must support predict_proba or decision_function for probability-based metrics.")
+    raise ValueError(
+        "Model must support predict_proba or decision_function for probability-based metrics."
+    )
 
 
-def _compute_classification_metrics(y_true: pd.Series, y_prob: np.ndarray, threshold: float) -> Dict[str, float]:
+def _compute_classification_metrics(
+    y_true: pd.Series, y_prob: np.ndarray, threshold: float
+) -> Dict[str, float]:
     y_pred = (y_prob >= threshold).astype(int)
     return {
         "threshold": float(threshold),
@@ -76,7 +81,11 @@ def _business_value_from_cm(
     benefit_true_positive: float,
 ) -> Dict[str, float]:
     tn, fp, fn, tp = cm.ravel()
-    business_value = (tp * benefit_true_positive) - (fp * cost_false_positive) - (fn * cost_false_negative)
+    business_value = (
+        (tp * benefit_true_positive)
+        - (fp * cost_false_positive)
+        - (fn * cost_false_negative)
+    )
     return {
         "tn": float(tn),
         "fp": float(fp),
@@ -86,7 +95,9 @@ def _business_value_from_cm(
     }
 
 
-def _select_best_threshold(y_true: pd.Series, y_prob: np.ndarray, candidates: List[float]) -> Dict[str, float]:
+def _select_best_threshold(
+    y_true: pd.Series, y_prob: np.ndarray, candidates: List[float]
+) -> Dict[str, float]:
     """Select best threshold based on F1 score. O(n*k) optimized with direct calculation."""
     best = {"threshold": 0.5, "f1": -1.0}
     for t in candidates:
@@ -215,7 +226,9 @@ def main() -> None:
     print(f"Summary TXT: {result['summary_txt_path']}")
     print(f"Summary JSON: {result['summary_json_path']}")
     print(f"Threshold CSV: {result['threshold_csv_path']}")
-    print(f"F1: {result['metrics']['f1']:.4f} | ROC-AUC: {result['metrics']['roc_auc']:.4f}")
+    print(
+        f"F1: {result['metrics']['f1']:.4f} | ROC-AUC: {result['metrics']['roc_auc']:.4f}"
+    )
 
 
 if __name__ == "__main__":

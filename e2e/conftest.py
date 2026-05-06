@@ -22,9 +22,14 @@ def seed_admin_user() -> None:
     session_factory = get_session_factory()
 
     with session_factory() as session:
-        user = session.query(UserProfile).filter(
-            (UserProfile.email == admin_user) | (UserProfile.external_user_id == admin_user)
-        ).first()
+        user = (
+            session.query(UserProfile)
+            .filter(
+                (UserProfile.email == admin_user)
+                | (UserProfile.external_user_id == admin_user)
+            )
+            .first()
+        )
 
         if user is None:
             user = UserProfile(

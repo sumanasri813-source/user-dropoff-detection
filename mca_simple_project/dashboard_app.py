@@ -1,5 +1,5 @@
-import streamlit as st
 import requests
+import streamlit as st
 
 st.set_page_config(page_title="MCA Drop-Off Demo", layout="centered")
 st.title("Silent User Drop-Off Detection")
@@ -13,7 +13,9 @@ with col1:
     recency_days = st.number_input("Recency Days", min_value=0, value=20)
     frequency_total = st.number_input("Total Activity Count", min_value=1, value=10)
 with col2:
-    session_duration_avg = st.number_input("Avg Session Duration (min)", min_value=0.1, value=8.5)
+    session_duration_avg = st.number_input(
+        "Avg Session Duration (min)", min_value=0.1, value=8.5
+    )
     feature_count_used = st.number_input("Features Used Count", min_value=1, value=4)
 
 if st.button("Predict Drop-Off Risk"):

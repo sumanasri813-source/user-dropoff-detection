@@ -23,7 +23,9 @@ def main() -> int:
             print(f"[DEBUG] Added project root to sys.path: {root}")
 
     if sys.version_info < (3, 7):
-        print("ERROR: this script requires Python 3.7+; run with `python3 scripts/monitor_test.py`.")
+        print(
+            "ERROR: this script requires Python 3.7+; run with `python3 scripts/monitor_test.py`."
+        )
         return 1
 
     from src.api import app as api_app

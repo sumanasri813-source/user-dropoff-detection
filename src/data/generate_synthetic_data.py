@@ -15,9 +15,13 @@ def generate_synthetic_data(n_users: int = 5000, seed: int = 42) -> pd.DataFrame
     session_duration_avg = rng.normal(loc=12, scale=4, size=n_users).clip(1, 60)
     feature_count_used = rng.integers(1, 15, size=n_users)
 
-    device_type = rng.choice(["mobile", "desktop", "tablet"], size=n_users, p=[0.55, 0.35, 0.10])
+    device_type = rng.choice(
+        ["mobile", "desktop", "tablet"], size=n_users, p=[0.55, 0.35, 0.10]
+    )
     os_type = rng.choice(["windows", "mac", "android", "ios", "linux"], size=n_users)
-    user_segment = rng.choice(["free", "trial", "premium"], size=n_users, p=[0.6, 0.2, 0.2])
+    user_segment = rng.choice(
+        ["free", "trial", "premium"], size=n_users, p=[0.6, 0.2, 0.2]
+    )
     region = rng.choice(["north", "south", "east", "west"], size=n_users)
 
     # Create drop-off probability from behavior patterns (optimized for 90% accuracy).

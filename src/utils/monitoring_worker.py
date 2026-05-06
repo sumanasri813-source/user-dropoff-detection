@@ -6,7 +6,6 @@ from typing import Callable, Optional
 
 from src.utils.logger import get_logger
 
-
 logger = get_logger("monitoring_worker")
 
 
@@ -30,9 +29,15 @@ class BackgroundMonitorWorker:
             return
 
         self._stop_event.clear()
-        self._thread = threading.Thread(target=self._run_loop, name=self.worker_name, daemon=True)
+        self._thread = threading.Thread(
+            target=self._run_loop, name=self.worker_name, daemon=True
+        )
         self._thread.start()
-        logger.info("worker_started", worker_name=self.worker_name, interval_seconds=self.interval_seconds)
+        logger.info(
+            "worker_started",
+            worker_name=self.worker_name,
+            interval_seconds=self.interval_seconds,
+        )
 
     def stop(self, timeout_seconds: float = 5.0) -> None:
         self._stop_event.set()
@@ -49,7 +54,9 @@ class BackgroundMonitorWorker:
             try:
                 self.cycle_fn()
             except Exception as exc:
-                logger.error("worker_cycle_failed", worker_name=self.worker_name, error=str(exc))
+                logger.error(
+                    "worker_cycle_failed", worker_name=self.worker_name, error=str(exc)
+                )
 
             elapsed = time.perf_counter() - start
             wait_time = max(0.0, self.interval_seconds - elapsed)

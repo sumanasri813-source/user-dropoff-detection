@@ -8,16 +8,10 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from src.api.prediction_service import (
-    FEATURE_KEYS,
-    load_decision_threshold,
-    load_model,
-    load_risk_levels,
-    predict_batch,
-    predict_one,
-    validate_payload,
-)
-
+from src.api.prediction_service import (FEATURE_KEYS, load_decision_threshold,
+                                        load_model, load_risk_levels,
+                                        predict_batch, predict_one,
+                                        validate_payload)
 
 st.set_page_config(
     page_title="Silent User Drop-Off Detection",
@@ -57,7 +51,9 @@ def load_threshold_analysis() -> pd.DataFrame:
 
 def render_header() -> None:
     st.title("Detection of Silent User Drop-Off")
-    st.caption("Machine Learning dashboard for risk scoring, evaluation tracking, and actionable retention insights.")
+    st.caption(
+        "Machine Learning dashboard for risk scoring, evaluation tracking, and actionable retention insights."
+    )
 
 
 def render_sidebar_context() -> None:
@@ -90,15 +86,25 @@ def render_single_prediction_tab(model: Any) -> None:
     with st.form("single_predict_form"):
         c1, c2, c3 = st.columns(3)
         with c1:
-            days_signup_age = st.number_input("Days Since Signup", min_value=0.0, value=250.0)
+            days_signup_age = st.number_input(
+                "Days Since Signup", min_value=0.0, value=250.0
+            )
             recency_days = st.number_input("Recency Days", min_value=0.0, value=45.0)
-            frequency_total = st.number_input("Total Activity Count", min_value=0.0, value=9.0)
+            frequency_total = st.number_input(
+                "Total Activity Count", min_value=0.0, value=9.0
+            )
         with c2:
-            session_duration_avg = st.number_input("Avg Session Duration (min)", min_value=0.0, value=6.5)
-            feature_count_used = st.number_input("Feature Count Used", min_value=0.0, value=2.0)
+            session_duration_avg = st.number_input(
+                "Avg Session Duration (min)", min_value=0.0, value=6.5
+            )
+            feature_count_used = st.number_input(
+                "Feature Count Used", min_value=0.0, value=2.0
+            )
         with c3:
             device_type = st.selectbox("Device Type", ["mobile", "desktop", "tablet"])
-            os_type = st.selectbox("OS Type", ["android", "ios", "windows", "mac", "linux"])
+            os_type = st.selectbox(
+                "OS Type", ["android", "ios", "windows", "mac", "linux"]
+            )
             user_segment = st.selectbox("User Segment", ["free", "trial", "premium"])
             region = st.selectbox("Region", ["north", "south", "east", "west"])
 
@@ -132,11 +138,17 @@ def render_single_prediction_tab(model: Any) -> None:
         m3.metric("Risk Level", result["risk_level"].upper())
 
         if result["risk_level"] == "high":
-            st.warning("High-risk user detected. Recommended action: immediate retention campaign.")
+            st.warning(
+                "High-risk user detected. Recommended action: immediate retention campaign."
+            )
         elif result["risk_level"] == "medium":
-            st.info("Medium-risk user detected. Recommended action: personalized in-app nudges.")
+            st.info(
+                "Medium-risk user detected. Recommended action: personalized in-app nudges."
+            )
         else:
-            st.success("Low-risk user detected. Recommended action: monitor and continue engagement.")
+            st.success(
+                "Low-risk user detected. Recommended action: monitor and continue engagement."
+            )
 
 
 def render_batch_tab(model: Any) -> None:
@@ -156,7 +168,9 @@ def render_batch_tab(model: Any) -> None:
     if not run_batch:
         return
 
-    records: List[Dict[str, Any]] = df.to_dict(orient="records") # pyright: ignore[reportAssignmentType]
+    records: List[Dict[str, Any]] = df.to_dict(
+        orient="records"
+    )  # pyright: ignore[reportAssignmentType]
     threshold = load_decision_threshold()
     risk_levels = load_risk_levels()
 

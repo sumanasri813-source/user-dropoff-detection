@@ -42,10 +42,15 @@ class AlertRobustnessTests(unittest.TestCase):
             self.assertIsNotNone(out1)
 
             out2 = alerts.persist_alerts([alert2], throttle_minutes=60)
-            self.assertIsNone(out2, "Alert with latency 325->355 (same 200ms bucket) should not persist")
+            self.assertIsNone(
+                out2,
+                "Alert with latency 325->355 (same 200ms bucket) should not persist",
+            )
 
             out3 = alerts.persist_alerts([alert3], throttle_minutes=60)
-            self.assertIsNotNone(out3, "Alert with latency 520 (different bucket) should persist")
+            self.assertIsNotNone(
+                out3, "Alert with latency 520 (different bucket) should persist"
+            )
 
             out_path = Path(str(out1))
             lines = out_path.read_text(encoding="utf-8").strip().splitlines()
@@ -59,7 +64,9 @@ class AlertRobustnessTests(unittest.TestCase):
 
             alerts.ALERTS_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-            cutoff = datetime.now(timezone.utc) - timedelta(days=alerts.ALERTS_RETENTION_DAYS)
+            cutoff = datetime.now(timezone.utc) - timedelta(
+                days=alerts.ALERTS_RETENTION_DAYS
+            )
             old_ts = (cutoff - timedelta(hours=1)).isoformat()
             recent_ts = datetime.now(timezone.utc).isoformat()
 
@@ -74,7 +81,9 @@ class AlertRobustnessTests(unittest.TestCase):
 
             alerts._prune_alert_history()
 
-            remaining = alerts.ALERTS_PATH.read_text(encoding="utf-8").strip().splitlines()
+            remaining = (
+                alerts.ALERTS_PATH.read_text(encoding="utf-8").strip().splitlines()
+            )
             self.assertEqual(len(remaining), 1)
             self.assertIn("test_recent", remaining[0])
 
@@ -95,7 +104,9 @@ class AlertRobustnessTests(unittest.TestCase):
 
             alerts._prune_alert_history()
 
-            remaining = alerts.ALERTS_PATH.read_text(encoding="utf-8").strip().splitlines()
+            remaining = (
+                alerts.ALERTS_PATH.read_text(encoding="utf-8").strip().splitlines()
+            )
             self.assertLessEqual(len(remaining), alerts.ALERTS_MAX_RECORDS)
 
     def test_malformed_records_are_retained_on_prune(self) -> None:
@@ -107,7 +118,11 @@ class AlertRobustnessTests(unittest.TestCase):
             alerts.ALERTS_PATH.parent.mkdir(parents=True, exist_ok=True)
 
             records = [
-                {"type": "valid", "message": "has timestamp", "timestamp": datetime.now(timezone.utc).isoformat()},
+                {
+                    "type": "valid",
+                    "message": "has timestamp",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
                 {"type": "no_ts", "message": "no timestamp field"},
                 "not_json_at_all",
             ]
@@ -121,8 +136,14 @@ class AlertRobustnessTests(unittest.TestCase):
 
             alerts._prune_alert_history()
 
-            remaining = alerts.ALERTS_PATH.read_text(encoding="utf-8").strip().splitlines()
-            self.assertEqual(len(remaining), 3, "All records should be retained (all recent and all valid or malformed)")
+            remaining = (
+                alerts.ALERTS_PATH.read_text(encoding="utf-8").strip().splitlines()
+            )
+            self.assertEqual(
+                len(remaining),
+                3,
+                "All records should be retained (all recent and all valid or malformed)",
+            )
 
     def test_cross_process_dedup_finds_last_alert_by_type(self) -> None:
         """Cross-process dedup should look at last record of the same alert type."""
@@ -165,7 +186,9 @@ class AlertRobustnessTests(unittest.TestCase):
             with alerts.ALERTS_PATH.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(old_drift) + "\n")
 
-            last_record, last_time = alerts._find_last_record_for_type("service_latency")
+            last_record, last_time = alerts._find_last_record_for_type(
+                "service_latency"
+            )
             self.assertIsNotNone(last_record)
             self.assertEqual(last_record["type"], "service_latency")
             self.assertEqual(last_record["value"], 350)

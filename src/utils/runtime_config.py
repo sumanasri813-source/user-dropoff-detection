@@ -40,7 +40,9 @@ def load_monitoring_config(config_path: str = "config.yaml") -> tuple[float, int
 
         cfg = load_config(config_path)
         monitoring = cfg.get("monitoring", {})
-        interval_sec = float(monitoring.get("monitor_worker_interval_sec", interval_sec))
+        interval_sec = float(
+            monitoring.get("monitor_worker_interval_sec", interval_sec)
+        )
         throttle_min = int(monitoring.get("alert_throttle_minutes", throttle_min))
     except Exception:
         pass

@@ -45,19 +45,29 @@ class AuditAdminTests(unittest.TestCase):
 
     def test_admin_can_view_audit_logs(self) -> None:
         # create admin user directly via DB helper (auth is enabled for endpoints)
-        payload = {"external_user_id": "admin_user", "password": "adminpw", "roles": "admin"}
+        payload = {
+            "external_user_id": "admin_user",
+            "password": "adminpw",
+            "roles": "admin",
+        }
         from src.db.crud import create_user
+
         with api_app_module.SessionLocal() as session:
             user = create_user(session, payload)
             self.assertIn("id", user)
 
         # login to create a refresh token (which logs issuance)
-        login = self.client.post("/auth/login", json={"external_user_id": "admin_user", "password": "adminpw"})
+        login = self.client.post(
+            "/auth/login",
+            json={"external_user_id": "admin_user", "password": "adminpw"},
+        )
         self.assertEqual(login.status_code, 200)
         token = login.get_json()["access_token"]
 
         # fetch audit logs
-        logs = self.client.get("/admin/audit-logs", headers={"Authorization": f"Bearer {token}"})
+        logs = self.client.get(
+            "/admin/audit-logs", headers={"Authorization": f"Bearer {token}"}
+        )
         self.assertEqual(logs.status_code, 200)
         body = logs.get_json()
         self.assertIn("logs", body)

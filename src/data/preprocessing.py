@@ -7,13 +7,8 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
-from src.data.data_loader import (
-    CATEGORICAL_COLUMNS,
-    NUMERIC_COLUMNS,
-    TARGET_COLUMN,
-    load_raw_data,
-)
-
+from src.data.data_loader import (CATEGORICAL_COLUMNS, NUMERIC_COLUMNS,
+                                  TARGET_COLUMN, load_raw_data)
 
 ALLOWED_DEVICE_TYPE = {"mobile", "desktop", "tablet"}
 ALLOWED_OS_TYPE = {"windows", "mac", "android", "ios", "linux"}
@@ -56,7 +51,9 @@ def preprocess_dataframe(raw_df: pd.DataFrame) -> PreprocessResult:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     # Coerce target to binary 0/1.
-    df[TARGET_COLUMN] = pd.to_numeric(df[TARGET_COLUMN], errors="coerce").fillna(0).astype(int)
+    df[TARGET_COLUMN] = (
+        pd.to_numeric(df[TARGET_COLUMN], errors="coerce").fillna(0).astype(int)
+    )
     df[TARGET_COLUMN] = np.where(df[TARGET_COLUMN] > 0, 1, 0)
 
     # Median imputation for robust handling of skewed behavior features.
@@ -65,7 +62,12 @@ def preprocess_dataframe(raw_df: pd.DataFrame) -> PreprocessResult:
         df[col] = df[col].fillna(median_val)
 
     # Enforce non-negative constraints where required.
-    bounded_cols = ["days_signup_age", "recency_days", "frequency_total", "feature_count_used"]
+    bounded_cols = [
+        "days_signup_age",
+        "recency_days",
+        "frequency_total",
+        "feature_count_used",
+    ]
     for col in bounded_cols:
         df[col] = df[col].clip(lower=0)
 
@@ -84,7 +86,9 @@ def preprocess_dataframe(raw_df: pd.DataFrame) -> PreprocessResult:
 
     # Final defensive pass to remove any remaining nulls.
     before_dropna = int(df.shape[0])
-    df = df.dropna(subset=NUMERIC_COLUMNS + CATEGORICAL_COLUMNS + [TARGET_COLUMN]).reset_index(drop=True)
+    df = df.dropna(
+        subset=NUMERIC_COLUMNS + CATEGORICAL_COLUMNS + [TARGET_COLUMN]
+    ).reset_index(drop=True)
     rows_dropped_null = before_dropna - int(df.shape[0])
 
     report = {
@@ -115,8 +119,12 @@ def run_preprocessing(
         f.write("=" * 30 + "\n")
         f.write(f"Input rows: {preprocess_result.report['input_rows']}\n")
         f.write(f"Output rows: {preprocess_result.report['output_rows']}\n")
-        f.write(f"Duplicates removed: {preprocess_result.report['duplicates_removed']}\n")
-        f.write(f"Rows dropped (remaining nulls): {preprocess_result.report['rows_dropped_null']}\n")
+        f.write(
+            f"Duplicates removed: {preprocess_result.report['duplicates_removed']}\n"
+        )
+        f.write(
+            f"Rows dropped (remaining nulls): {preprocess_result.report['rows_dropped_null']}\n"
+        )
 
     return preprocess_result.report
 

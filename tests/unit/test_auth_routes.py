@@ -56,7 +56,10 @@ class AuthRouteTests(unittest.TestCase):
         self.assertEqual(create_resp.status_code, 201)
 
         # Login
-        login_resp = self.client.post("/auth/login", json={"external_user_id": "auth_user_1", "password": "s3cret"})
+        login_resp = self.client.post(
+            "/auth/login",
+            json={"external_user_id": "auth_user_1", "password": "s3cret"},
+        )
         self.assertEqual(login_resp.status_code, 200)
         body = login_resp.get_json()
         self.assertIn("access_token", body)
@@ -67,7 +70,9 @@ class AuthRouteTests(unittest.TestCase):
         api_app_module.api_key = None
 
         # Access protected sample route using Bearer token
-        protected = self.client.get("/protected", headers={"Authorization": f"Bearer {token}"})
+        protected = self.client.get(
+            "/protected", headers={"Authorization": f"Bearer {token}"}
+        )
         self.assertEqual(protected.status_code, 200)
         pbody = protected.get_json()
         self.assertTrue(pbody.get("protected"))
@@ -79,24 +84,32 @@ class AuthRouteTests(unittest.TestCase):
         create_resp = self.client.post("/users", json=payload)
         self.assertEqual(create_resp.status_code, 201)
 
-        login_resp = self.client.post("/auth/login", json={"external_user_id": "auth_user_2", "password": "pw"})
+        login_resp = self.client.post(
+            "/auth/login", json={"external_user_id": "auth_user_2", "password": "pw"}
+        )
         self.assertEqual(login_resp.status_code, 200)
         body = login_resp.get_json()
         self.assertIn("refresh_token", body)
         refresh = body["refresh_token"]
 
         # Refresh
-        refresh_resp = self.client.post("/auth/refresh", json={"refresh_token": refresh})
+        refresh_resp = self.client.post(
+            "/auth/refresh", json={"refresh_token": refresh}
+        )
         self.assertEqual(refresh_resp.status_code, 200)
         rbody = refresh_resp.get_json()
         self.assertIn("access_token", rbody)
         self.assertIn("refresh_token", rbody)
 
         # Logout (revoke)
-        logout_resp = self.client.post("/auth/logout", json={"refresh_token": rbody["refresh_token"]})
+        logout_resp = self.client.post(
+            "/auth/logout", json={"refresh_token": rbody["refresh_token"]}
+        )
         self.assertEqual(logout_resp.status_code, 200)
         # subsequent refresh should fail
-        fail_resp = self.client.post("/auth/refresh", json={"refresh_token": rbody["refresh_token"]})
+        fail_resp = self.client.post(
+            "/auth/refresh", json={"refresh_token": rbody["refresh_token"]}
+        )
         self.assertEqual(fail_resp.status_code, 401)
 
     def test_api_key_allows_sensitive_endpoints(self) -> None:

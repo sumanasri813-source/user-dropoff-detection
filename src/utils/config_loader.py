@@ -57,8 +57,16 @@ def _environment_config_path(environment: str) -> Path:
 
 def _apply_compatibility_mappings(config: Dict[str, Any]) -> Dict[str, Any]:
     app_cfg = config.get("app", {}) if isinstance(config.get("app", {}), dict) else {}
-    deployment_cfg = config.get("deployment", {}) if isinstance(config.get("deployment", {}), dict) else {}
-    api_cfg = deployment_cfg.get("api", {}) if isinstance(deployment_cfg.get("api", {}), dict) else {}
+    deployment_cfg = (
+        config.get("deployment", {})
+        if isinstance(config.get("deployment", {}), dict)
+        else {}
+    )
+    api_cfg = (
+        deployment_cfg.get("api", {})
+        if isinstance(deployment_cfg.get("api", {}), dict)
+        else {}
+    )
 
     if app_cfg:
         api_cfg.setdefault("host", app_cfg.get("api_host", "0.0.0.0"))
@@ -68,9 +76,17 @@ def _apply_compatibility_mappings(config: Dict[str, Any]) -> Dict[str, Any]:
         deployment_cfg["api"] = api_cfg
         config["deployment"] = deployment_cfg
 
-    monitoring_cfg = config.get("monitoring", {}) if isinstance(config.get("monitoring", {}), dict) else {}
+    monitoring_cfg = (
+        config.get("monitoring", {})
+        if isinstance(config.get("monitoring", {}), dict)
+        else {}
+    )
     if monitoring_cfg.get("log_level"):
-        logging_cfg = config.get("logging", {}) if isinstance(config.get("logging", {}), dict) else {}
+        logging_cfg = (
+            config.get("logging", {})
+            if isinstance(config.get("logging", {}), dict)
+            else {}
+        )
         logging_cfg["level"] = monitoring_cfg["log_level"]
         config["logging"] = logging_cfg
 
@@ -97,7 +113,9 @@ def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
     merged = _deep_merge(base_config, env_config)
     merged = _apply_compatibility_mappings(merged)
 
-    runtime_block = merged.get("runtime", {}) if isinstance(merged.get("runtime", {}), dict) else {}
+    runtime_block = (
+        merged.get("runtime", {}) if isinstance(merged.get("runtime", {}), dict) else {}
+    )
     runtime_block["environment"] = runtime_env
     runtime_block["environment_config_path"] = str(env_path)
     runtime_block["environment_config_loaded"] = env_path.exists()

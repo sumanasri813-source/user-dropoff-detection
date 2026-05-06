@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from src.database import Base, DatabaseConfig, User, Prediction, APICall, AuditLog, ModelMetrics, SystemConfig
+from src.database import (APICall, AuditLog, Base, DatabaseConfig,
+                          ModelMetrics, Prediction, SystemConfig, User)
 
 
 class DatabaseModelTests(unittest.TestCase):
@@ -10,7 +11,14 @@ class DatabaseModelTests(unittest.TestCase):
         table_names = set(Base.metadata.tables.keys())
         self.assertSetEqual(
             table_names,
-            {"users", "predictions", "api_calls", "audit_logs", "model_metrics", "system_config"},
+            {
+                "users",
+                "predictions",
+                "api_calls",
+                "audit_logs",
+                "model_metrics",
+                "system_config",
+            },
         )
 
     def test_core_models_expose_table_names(self) -> None:

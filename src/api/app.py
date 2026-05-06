@@ -1,68 +1,77 @@
 ﻿from __future__ import annotations
 
 import atexit
+import os
 import time
 import uuid
 from functools import wraps
 from typing import Any, Dict
 
-from flask import Flask, g, jsonify, request, send_from_directory, render_template, make_response, session as flask_session, redirect, url_for
-import os
+from flask import (Flask, g, jsonify, make_response, redirect, render_template,
+                   request, send_from_directory)
+from flask import session as flask_session
+from flask import url_for
+from jose import JWTError
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from jose import JWTError
 from werkzeug.exceptions import HTTPException
 
-from src.api.prediction_service import (
-    load_decision_threshold,
-    load_model,
-    load_risk_levels,
-    predict_batch,
-    predict_one,
-    validate_payload,
-)
+from src.api.prediction_service import (load_decision_threshold, load_model,
+                                        load_risk_levels, predict_batch,
+                                        predict_one, validate_payload)
 from src.db.connection import get_session_factory, init_database
-from src.db.crud import (
-    create_prediction_record,
-    create_user,
-    delete_user,
-    get_user,
-    list_predictions,
-    list_users,
-    update_user,
-)
-from src.db.crud import get_refresh_token_record, revoke_refresh_token
-from src.utils.auth import create_api_key_guard, load_security_config, load_jwt_config, load_session_secret_key
-from src.utils.auth import create_access_token, decode_access_token, verify_password, create_token_or_key_guard, create_refresh_token, decode_refresh_token, require_role
+from src.db.crud import (create_prediction_record, create_user, delete_user,
+                         get_audit_logs, get_refresh_token_record, get_user,
+                         list_predictions, list_users, revoke_refresh_token,
+                         update_user)
 from src.db.models import UserProfile
 from src.utils.alerts import evaluate_alert_rules, persist_alerts
-from src.db.crud import get_audit_logs
+from src.utils.auth import (create_access_token, create_api_key_guard,
+                            create_refresh_token, create_token_or_key_guard,
+                            decode_access_token, decode_refresh_token,
+                            load_jwt_config, load_security_config,
+                            load_session_secret_key, require_role,
+                            verify_password)
 from src.utils.health import HealthChecker
 from src.utils.logger import get_logger
 from src.utils.metrics import get_collector, request_id_var
 from src.utils.monitoring_worker import BackgroundMonitorWorker
+
 try:
     import sentry_sdk  # type: ignore
     from sentry_sdk.integrations.flask import FlaskIntegration  # type: ignore
 except Exception:
     sentry_sdk = None
-from src.utils.runtime_config import load_api_config, load_model_path, load_monitoring_config
-from src.utils.errors import handle_error, MLPipelineError, DatabaseError, RateLimitError
+from src.utils.errors import (DatabaseError, MLPipelineError, RateLimitError,
+                              handle_error)
 from src.utils.resilience import PerKeyRateLimiter, with_circuit_breaker
-
+from src.utils.runtime_config import (load_api_config, load_model_path,
+                                      load_monitoring_config)
 
 # production mode detection for security hardening
-is_production = os.getenv("FLASK_ENV", "").lower() == "production" or os.getenv("ENABLE_SECURITY_HARDENING", "").lower() == "true"
+is_production = (
+    os.getenv("FLASK_ENV", "").lower() == "production"
+    or os.getenv("ENABLE_SECURITY_HARDENING", "").lower() == "true"
+)
 
 # Mount public docs at /docs (served from docs/public)
-docs_public_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "docs", "public"))
-templates_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "templates"))
+docs_public_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "docs", "public")
+)
+templates_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "templates")
+)
 try:
     os.makedirs(docs_public_dir, exist_ok=True)
 except Exception:
     pass
 
-app = Flask(__name__, static_folder=docs_public_dir, static_url_path="/docs", template_folder=templates_dir)
+app = Flask(
+    __name__,
+    static_folder=docs_public_dir,
+    static_url_path="/docs",
+    template_folder=templates_dir,
+)
 
 app.secret_key = load_session_secret_key()
 app.config.update(
@@ -79,7 +88,11 @@ SENTRY_DSN = os.getenv("SENTRY_DSN")
 SENTRY_TRACES_SAMPLE = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.0"))
 if SENTRY_DSN and sentry_sdk is not None:
     try:
-        sentry_sdk.init(dsn=SENTRY_DSN, integrations=[FlaskIntegration()], traces_sample_rate=SENTRY_TRACES_SAMPLE)
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=SENTRY_TRACES_SAMPLE,
+        )
         logger.info("sentry_initialized")
     except Exception:
         logger.error("sentry_init_failed")
@@ -113,7 +126,9 @@ def _parse_roles(raw_roles: Any) -> list[str]:
 
 
 def _admin_session_is_authenticated() -> bool:
-    return bool(flask_session.get("admin_authenticated")) and "admin" in _parse_roles(flask_session.get("admin_roles"))
+    return bool(flask_session.get("admin_authenticated")) and "admin" in _parse_roles(
+        flask_session.get("admin_roles")
+    )
 
 
 def _set_admin_csrf_cookie(response):
@@ -192,7 +207,13 @@ def _render_admin_dashboard_response(
     )
     if csrf_token:
         secure_cookie = True if is_production else False
-        resp.set_cookie("XSRF-TOKEN", csrf_token, httponly=False, secure=secure_cookie, samesite="Lax")
+        resp.set_cookie(
+            "XSRF-TOKEN",
+            csrf_token,
+            httponly=False,
+            secure=secure_cookie,
+            samesite="Lax",
+        )
     return resp
 
 
@@ -231,7 +252,14 @@ def require_admin_access(view_fn):
             g.admin_auth_source = "bearer"
             return view_fn(*args, **kwargs)
 
-        return jsonify({"error": "Unauthorized. Missing admin session, API key, or Bearer token."}), 401
+        return (
+            jsonify(
+                {
+                    "error": "Unauthorized. Missing admin session, API key, or Bearer token."
+                }
+            ),
+            401,
+        )
 
     return wrapped
 
@@ -244,17 +272,25 @@ def run_monitoring_cycle() -> None:
 
     # Efficient health check - results cached internally by HealthChecker
     health_status = HealthChecker.run_full_check().status
-    alerts = evaluate_alert_rules(collector.get_api_snapshot(), health_status=health_status)
+    alerts = evaluate_alert_rules(
+        collector.get_api_snapshot(), health_status=health_status
+    )
     alert_path = persist_alerts(alerts, throttle_minutes=alert_throttle_minutes)
     if alert_path and alerts:
         # In development/local runs we prefer INFO to avoid noisy WARNINGs.
         if is_production:
-            logger.warning("alerts_triggered", alert_count=len(alerts), alert_path=alert_path)
+            logger.warning(
+                "alerts_triggered", alert_count=len(alerts), alert_path=alert_path
+            )
         else:
-            logger.info("alerts_triggered", alert_count=len(alerts), alert_path=alert_path)
+            logger.info(
+                "alerts_triggered", alert_count=len(alerts), alert_path=alert_path
+            )
     # Cleanup expired refresh tokens periodically (best-effort)
     try:
-        from src.db.crud import cleanup_expired_refresh_tokens, cleanup_old_audit_logs
+        from src.db.crud import (cleanup_expired_refresh_tokens,
+                                 cleanup_old_audit_logs)
+
         with SessionLocal() as session:
             removed = cleanup_expired_refresh_tokens(session)
             if removed:
@@ -263,7 +299,11 @@ def run_monitoring_cycle() -> None:
             retention = int(os.getenv("AUDIT_RETENTION_DAYS", "90"))
             removed_audit = cleanup_old_audit_logs(session, retention_days=retention)
             if removed_audit:
-                logger.info("cleanup_old_audit_logs", removed=removed_audit, retention_days=retention)
+                logger.info(
+                    "cleanup_old_audit_logs",
+                    removed=removed_audit,
+                    retention_days=retention,
+                )
     except Exception as exc:
         logger.error("cleanup_tokens_failed", error=str(exc))
 
@@ -273,7 +313,9 @@ def start_monitoring_worker(interval_seconds: float = 30.0) -> None:
     if monitor_worker and monitor_worker.is_running():
         return
 
-    monitor_worker = BackgroundMonitorWorker(cycle_fn=run_monitoring_cycle, interval_seconds=interval_seconds)
+    monitor_worker = BackgroundMonitorWorker(
+        cycle_fn=run_monitoring_cycle, interval_seconds=interval_seconds
+    )
     monitor_worker.start()
 
 
@@ -359,11 +401,19 @@ def after_request_hooks(response):
             response.headers.setdefault("X-Frame-Options", "DENY")
             response.headers.setdefault("X-Content-Type-Options", "nosniff")
             response.headers.setdefault("Referrer-Policy", "no-referrer")
-            response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=()")
-            response.headers.setdefault("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none';")
+            response.headers.setdefault(
+                "Permissions-Policy", "geolocation=(), microphone=()"
+            )
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none';",
+            )
             # Set HSTS only in production - requires HTTPS in production deployment
             if is_production:
-                response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+                response.headers.setdefault(
+                    "Strict-Transport-Security",
+                    "max-age=31536000; includeSubDomains; preload",
+                )
     except Exception:
         pass
 
@@ -391,33 +441,36 @@ def handle_exception(exc: Exception):
                     "error": {
                         "code": "HTTP_ERROR",
                         "message": str(getattr(exc, "description", str(exc))),
-                        "details": {"error_type": type(exc).__name__, "status_code": code},
+                        "details": {
+                            "error_type": type(exc).__name__,
+                            "status_code": code,
+                        },
                     },
                     "request_id": request_id,
                 }
             ),
             code,
         )
-    
+
     # Handle rate limiting errors separately
     if isinstance(exc, RateLimitError):
         collector.increment_counter("api_rate_limited")
         api_error = handle_error(exc, request_id)
         return jsonify(api_error.to_dict()), api_error.status_code
-    
+
     # Handle custom ML errors
     if isinstance(exc, MLPipelineError):
         collector.increment_counter("api_validation_errors")
         api_error = handle_error(exc, request_id)
         return jsonify(api_error.to_dict()), api_error.status_code
-    
+
     # Handle database integrity errors
     if isinstance(exc, IntegrityError):
         collector.increment_counter("api_database_errors")
         db_error = DatabaseError("Database constraint violation", cause=exc)
         api_error = handle_error(db_error, request_id)
         return jsonify(api_error.to_dict()), api_error.status_code
-    
+
     # Handle all other exceptions as internal errors
     collector.increment_counter("api_unhandled_exceptions")
     logger.error(
@@ -481,8 +534,14 @@ def health() -> tuple:
         },
     }
 
-    logger.info("health_checked", health_status=health_payload.get("status"), model_loaded=model is not None)
-    return jsonify(response), (200 if health_payload.get("status") != "unhealthy" else 503)
+    logger.info(
+        "health_checked",
+        health_status=health_payload.get("status"),
+        model_loaded=model is not None,
+    )
+    return jsonify(response), (
+        200 if health_payload.get("status") != "unhealthy" else 503
+    )
 
 
 @app.route("/monitor", methods=["GET"])
@@ -509,9 +568,14 @@ def auth_login() -> tuple:
 
     with SessionLocal() as session:
         # attempt to find by external_user_id first, then email
-        user = session.query(UserProfile).filter(
-            (UserProfile.external_user_id == str(identifier)) | (UserProfile.email == str(identifier))
-        ).first()
+        user = (
+            session.query(UserProfile)
+            .filter(
+                (UserProfile.external_user_id == str(identifier))
+                | (UserProfile.email == str(identifier))
+            )
+            .first()
+        )
 
         if not user or not getattr(user, "password_hash", None):
             return jsonify({"error": "Invalid credentials."}), 401
@@ -525,9 +589,20 @@ def auth_login() -> tuple:
             if isinstance(user.roles, str):
                 roles_claim = [r.strip() for r in user.roles.split(",") if r.strip()]
 
-        access = create_access_token(subject=str(user.id), additional_claims={"roles": roles_claim})
+        access = create_access_token(
+            subject=str(user.id), additional_claims={"roles": roles_claim}
+        )
         refresh = create_refresh_token(user_id=user.id)
-        return jsonify({"access_token": access, "token_type": "bearer", "refresh_token": refresh}), 200
+        return (
+            jsonify(
+                {
+                    "access_token": access,
+                    "token_type": "bearer",
+                    "refresh_token": refresh,
+                }
+            ),
+            200,
+        )
 
 
 @app.route("/protected", methods=["GET"])
@@ -564,7 +639,14 @@ def auth_refresh() -> tuple:
         revoke_refresh_token(session, jti=jti)
         try:
             from src.db.crud import log_audit_event
-            log_audit_event(session, user_id=int(sub), action="revoke_refresh_token", resource_type="refresh_token", changes_summary=f"jti={jti}")
+
+            log_audit_event(
+                session,
+                user_id=int(sub),
+                action="revoke_refresh_token",
+                resource_type="refresh_token",
+                changes_summary=f"jti={jti}",
+            )
         except Exception:
             pass
 
@@ -595,7 +677,18 @@ def auth_logout() -> tuple:
             return jsonify({"error": "Refresh token not found."}), 404
         try:
             from src.db.crud import log_audit_event
-            log_audit_event(session, user_id=None if not getattr(g, 'token_subject', None) else int(g.token_subject), action="revoke_refresh_token", resource_type="refresh_token", changes_summary=f"jti={jti}")
+
+            log_audit_event(
+                session,
+                user_id=(
+                    None
+                    if not getattr(g, "token_subject", None)
+                    else int(g.token_subject)
+                ),
+                action="revoke_refresh_token",
+                resource_type="refresh_token",
+                changes_summary=f"jti={jti}",
+            )
         except Exception:
             pass
         return jsonify({"revoked": True}), 200
@@ -603,17 +696,28 @@ def auth_logout() -> tuple:
 
 @app.route("/admin/login", methods=["POST"])
 def admin_login() -> tuple:
-    payload: Dict[str, Any] = request.get_json(silent=True) or request.form.to_dict() or {}
-    identifier = payload.get("external_user_id") or payload.get("email") or payload.get("username")
+    payload: Dict[str, Any] = (
+        request.get_json(silent=True) or request.form.to_dict() or {}
+    )
+    identifier = (
+        payload.get("external_user_id")
+        or payload.get("email")
+        or payload.get("username")
+    )
     password = payload.get("password")
 
     if not identifier or not password:
         return jsonify({"error": "Provide username/email and password."}), 400
 
     with SessionLocal() as session:
-        user = session.query(UserProfile).filter(
-            (UserProfile.external_user_id == str(identifier)) | (UserProfile.email == str(identifier))
-        ).first()
+        user = (
+            session.query(UserProfile)
+            .filter(
+                (UserProfile.external_user_id == str(identifier))
+                | (UserProfile.email == str(identifier))
+            )
+            .first()
+        )
 
         if not user or not getattr(user, "password_hash", None):
             return jsonify({"error": "Invalid credentials."}), 401
@@ -666,7 +770,17 @@ def admin_audit_logs() -> tuple:
             resource_type=resource_type if resource_type else None,
         )
 
-    return jsonify({"page": page, "per_page": per_page, "total": result["total"], "logs": result["logs"]}), 200
+    return (
+        jsonify(
+            {
+                "page": page,
+                "per_page": per_page,
+                "total": result["total"],
+                "logs": result["logs"],
+            }
+        ),
+        200,
+    )
 
 
 @app.route("/admin/audit-logs/distinct", methods=["GET"])
@@ -679,13 +793,28 @@ def admin_audit_logs_distinct() -> tuple:
 
     with SessionLocal() as session:
         if field == "user_id":
-            rows = session.query(AuditLog.user_id).distinct().order_by(AuditLog.user_id).all()
+            rows = (
+                session.query(AuditLog.user_id)
+                .distinct()
+                .order_by(AuditLog.user_id)
+                .all()
+            )
             values = [r[0] for r in rows if r[0] is not None]
         elif field == "action":
-            rows = session.query(AuditLog.action).distinct().order_by(AuditLog.action).all()
+            rows = (
+                session.query(AuditLog.action)
+                .distinct()
+                .order_by(AuditLog.action)
+                .all()
+            )
             values = [r[0] for r in rows if r[0]]
         else:
-            rows = session.query(AuditLog.resource_type).distinct().order_by(AuditLog.resource_type).all()
+            rows = (
+                session.query(AuditLog.resource_type)
+                .distinct()
+                .order_by(AuditLog.resource_type)
+                .all()
+            )
             values = [r[0] for r in rows if r[0]]
 
     return jsonify({"field": field, "values": values}), 200
@@ -716,21 +845,34 @@ def admin_audit_logs_export() -> tuple:
         )
 
     # build CSV
-    import io, csv
+    import csv
+    import io
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["id", "user_id", "action", "resource_type", "resource_id", "changes_summary", "created_at"])
+    writer.writerow(
+        [
+            "id",
+            "user_id",
+            "action",
+            "resource_type",
+            "resource_id",
+            "changes_summary",
+            "created_at",
+        ]
+    )
     for r in result["logs"]:
-        writer.writerow([
-            r.get("id"),
-            r.get("user_id"),
-            r.get("action"),
-            r.get("resource_type"),
-            r.get("resource_id"),
-            r.get("changes_summary"),
-            r.get("created_at"),
-        ])
+        writer.writerow(
+            [
+                r.get("id"),
+                r.get("user_id"),
+                r.get("action"),
+                r.get("resource_type"),
+                r.get("resource_id"),
+                r.get("changes_summary"),
+                r.get("created_at"),
+            ]
+        )
 
     csv_data = output.getvalue()
     resp = make_response(csv_data)
@@ -746,7 +888,9 @@ def admin_audit_logs_viewer() -> tuple:
     Falls back to 404 on errors. The file is located in the repository `docs/` folder.
     """
     try:
-        docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "docs"))
+        docs_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "docs")
+        )
         private_dir = os.path.join(docs_dir, "private")
         return send_from_directory(private_dir, "audit_logs_viewer.html")
     except Exception as exc:
@@ -770,7 +914,13 @@ def admin_dashboard() -> tuple:
             user_id = request.args.get("user_id")
             action = request.args.get("action")
             resource_type = request.args.get("resource_type")
-            return _render_admin_dashboard_response(page, per_page, user_id=user_id, action=action, resource_type=resource_type)
+            return _render_admin_dashboard_response(
+                page,
+                per_page,
+                user_id=user_id,
+                action=action,
+                resource_type=resource_type,
+            )
 
         if _request_has_admin_bearer():
             page = int(request.args.get("page", 1))
@@ -780,7 +930,13 @@ def admin_dashboard() -> tuple:
             user_id = request.args.get("user_id")
             action = request.args.get("action")
             resource_type = request.args.get("resource_type")
-            return _render_admin_dashboard_response(page, per_page, user_id=user_id, action=action, resource_type=resource_type)
+            return _render_admin_dashboard_response(
+                page,
+                per_page,
+                user_id=user_id,
+                action=action,
+                resource_type=resource_type,
+            )
 
         return _render_admin_login_response()
     except Exception as exc:
@@ -794,7 +950,12 @@ def admin_delete_audit_log(log_id: int) -> tuple:
     payload: Dict[str, Any] = request.get_json(silent=True) or {}
     reason = payload.get("reason")
     if not reason or not isinstance(reason, str) or len(reason.strip()) < 5:
-        return jsonify({"error": "Provide non-empty 'reason' (min 5 chars) for deletion."}), 400
+        return (
+            jsonify(
+                {"error": "Provide non-empty 'reason' (min 5 chars) for deletion."}
+            ),
+            400,
+        )
 
     # CSRF protection: require X-CSRF-Token header with valid token
     csrf_header = request.headers.get("X-CSRF-Token", "")
@@ -810,6 +971,7 @@ def admin_delete_audit_log(log_id: int) -> tuple:
 
     with SessionLocal() as session:
         from src.db.crud import delete_audit_log, log_audit_event
+
         success = delete_audit_log(session, log_id=log_id)
         if not success:
             return jsonify({"error": "Audit log not found."}), 404
@@ -820,7 +982,14 @@ def admin_delete_audit_log(log_id: int) -> tuple:
                 user_id = int(getattr(g, "token_subject", None))
             except Exception:
                 user_id = None
-            log_audit_event(session, user_id=user_id or 0, action="delete_audit_log", resource_type="audit_log", resource_id=log_id, reason=reason)
+            log_audit_event(
+                session,
+                user_id=user_id or 0,
+                action="delete_audit_log",
+                resource_type="audit_log",
+                resource_id=log_id,
+                reason=reason,
+            )
         except Exception:
             pass
         return jsonify({"deleted": True, "log_id": log_id}), 200
@@ -833,7 +1002,10 @@ def predict() -> tuple:
     ok, message = validate_payload(payload)
     if not ok:
         collector.increment_counter("prediction_validation_errors")
-        return jsonify({"error": message, "request_id": getattr(g, "request_id", "")}), 400
+        return (
+            jsonify({"error": message, "request_id": getattr(g, "request_id", "")}),
+            400,
+        )
 
     try:
         result = predict_one(model, payload, threshold, risk_levels)
@@ -850,8 +1022,13 @@ def predict() -> tuple:
         return jsonify({**result, "request_id": getattr(g, "request_id", "")}), 200
     except Exception as exc:
         collector.increment_counter("prediction_runtime_errors")
-        logger.error("predict_failed", request_id=getattr(g, "request_id", ""), error=str(exc))
-        return jsonify({"error": str(exc), "request_id": getattr(g, "request_id", "")}), 400
+        logger.error(
+            "predict_failed", request_id=getattr(g, "request_id", ""), error=str(exc)
+        )
+        return (
+            jsonify({"error": str(exc), "request_id": getattr(g, "request_id", "")}),
+            400,
+        )
 
 
 @app.route("/users", methods=["POST"])
@@ -881,7 +1058,9 @@ def users_list() -> tuple:
     limit = max(1, min(1000, limit))
     offset = max(0, offset)
     with SessionLocal() as session:
-        rows = list_users(session, limit=limit, offset=offset, user_segment=user_segment)
+        rows = list_users(
+            session, limit=limit, offset=offset, user_segment=user_segment
+        )
     return jsonify({"count": len(rows), "users": rows}), 200
 
 
@@ -924,7 +1103,9 @@ def predictions_list() -> tuple:
     offset = int(request.args.get("offset", 0))
     risk_level = request.args.get("risk_level")
     min_probability_raw = request.args.get("min_probability")
-    min_probability = float(min_probability_raw) if min_probability_raw is not None else None
+    min_probability = (
+        float(min_probability_raw) if min_probability_raw is not None else None
+    )
     limit = max(1, min(1000, limit))
     offset = max(0, offset)
     with SessionLocal() as session:
@@ -979,5 +1160,12 @@ if __name__ == "__main__":
     interval_sec, throttle_min = load_monitoring_config()
     alert_throttle_minutes = throttle_min
     start_monitoring_worker(interval_seconds=interval_sec)
-    logger.info("api_starting", host=host, port=port, debug=debug, monitoring_interval_sec=interval_sec, alert_throttle_minutes=throttle_min)
+    logger.info(
+        "api_starting",
+        host=host,
+        port=port,
+        debug=debug,
+        monitoring_interval_sec=interval_sec,
+        alert_throttle_minutes=throttle_min,
+    )
     app.run(host=host, port=port, debug=debug)

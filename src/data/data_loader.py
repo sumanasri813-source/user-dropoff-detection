@@ -6,7 +6,6 @@ from typing import Dict, Iterable
 
 import pandas as pd
 
-
 REQUIRED_COLUMNS = {
     "user_id",
     "days_signup_age",

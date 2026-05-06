@@ -70,7 +70,9 @@ class DataValidator:
     }
 
     @classmethod
-    def validate(cls, df: pd.DataFrame, target_column: Optional[str] = None) -> DataQualityReport:
+    def validate(
+        cls, df: pd.DataFrame, target_column: Optional[str] = None
+    ) -> DataQualityReport:
         """Run comprehensive data validation. O(n) single-pass optimized version."""
         report = DataQualityReport(total_rows=len(df))
         df_columns = set(df.columns)
@@ -98,22 +100,30 @@ class DataValidator:
                 col_uniques = set(df[col].unique())
                 invalid = col_uniques - valid_set
                 if invalid:
-                    report.data_type_errors.append(f"Column '{col}' has invalid values: {invalid}")
+                    report.data_type_errors.append(
+                        f"Column '{col}' has invalid values: {invalid}"
+                    )
 
         # Vectorized range checks - O(n)
         for col, (min_val, max_val) in cls.VALID_RANGES.items():
             if col in df_columns:
                 violations = ((df[col] < min_val) | (df[col] > max_val)).sum()
                 if violations > 0:
-                    report.range_violations.append(f"Column '{col}': {int(violations)} values out of range [{min_val}, {max_val}]")
+                    report.range_violations.append(
+                        f"Column '{col}': {int(violations)} values out of range [{min_val}, {max_val}]"
+                    )
 
         # Check target if provided - O(u) where u=unique values
         if target_column and target_column in df_columns:
             unique_targets = set(df[target_column].dropna().unique())
             if not unique_targets.issubset({0, 1}):
-                report.data_type_errors.append(f"Target column '{target_column}' is not binary (0/1)")
+                report.data_type_errors.append(
+                    f"Target column '{target_column}' is not binary (0/1)"
+                )
 
-        report.passed = len(report.data_type_errors) == 0 and len(report.missing_values) == 0
+        report.passed = (
+            len(report.data_type_errors) == 0 and len(report.missing_values) == 0
+        )
         return report
 
     @classmethod

@@ -22,7 +22,9 @@ class GatewaySmokeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         if Draft202012Validator is None:
-            raise unittest.SkipTest("jsonschema is not installed. Install with: pip install jsonschema")
+            raise unittest.SkipTest(
+                "jsonschema is not installed. Install with: pip install jsonschema"
+            )
 
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         cls.request_validator = Draft202012Validator(
@@ -63,7 +65,11 @@ class GatewaySmokeTest(unittest.TestCase):
         }
 
         request_errors = list(self.request_validator.iter_errors(payload))
-        self.assertEqual(request_errors, [], f"Request schema errors: {[e.message for e in request_errors]}")
+        self.assertEqual(
+            request_errors,
+            [],
+            f"Request schema errors: {[e.message for e in request_errors]}",
+        )
 
         request = urllib.request.Request(
             url,
@@ -80,7 +86,11 @@ class GatewaySmokeTest(unittest.TestCase):
             raise unittest.SkipTest(f"Gateway not reachable at {url}: {exc}") from exc
 
         response_errors = list(self.response_validator.iter_errors(body))
-        self.assertEqual(response_errors, [], f"Response schema errors: {[e.message for e in response_errors]}")
+        self.assertEqual(
+            response_errors,
+            [],
+            f"Response schema errors: {[e.message for e in response_errors]}",
+        )
 
         self.assertEqual(body["request_id"], payload["request_id"])
         self.assertIn(body["prediction"]["risk_label"], ["low", "medium", "high"])

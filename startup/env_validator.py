@@ -4,6 +4,7 @@ This module exposes `validate_env` which checks for required environment
 variables and exits with a non-zero code when any required variable is
 missing. It is safe to import and call from the app's startup logic.
 """
+
 from __future__ import annotations
 
 import os
@@ -11,7 +12,9 @@ import sys
 from typing import Iterable, List
 
 
-def validate_env(required: Iterable[str] | None = None, fail_on_missing: bool = True) -> List[str]:
+def validate_env(
+    required: Iterable[str] | None = None, fail_on_missing: bool = True
+) -> List[str]:
     """Validate that required environment variables are present.
 
     Args:

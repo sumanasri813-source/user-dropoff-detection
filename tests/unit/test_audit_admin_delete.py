@@ -48,14 +48,23 @@ class AuditAdminDeleteTests(unittest.TestCase):
         # create admin user
         payload = {"external_user_id": "admin_del", "password": "pw", "roles": "admin"}
         from src.db.crud import create_user, log_audit_event
+
         with api_app_module.SessionLocal() as session:
             u = create_user(session, payload)
             # create a sample audit entry
-            ev = log_audit_event(session, user_id=u["id"], action="test_event", resource_type="test", changes_summary="x")
+            ev = log_audit_event(
+                session,
+                user_id=u["id"],
+                action="test_event",
+                resource_type="test",
+                changes_summary="x",
+            )
             log_id = ev["id"]
 
         # login to establish admin session
-        login = self.client.post("/admin/login", json={"username": "admin_del", "password": "pw"})
+        login = self.client.post(
+            "/admin/login", json={"username": "admin_del", "password": "pw"}
+        )
         self.assertEqual(login.status_code, 200)
 
         # fetch dashboard to receive CSRF cookie
@@ -75,14 +84,22 @@ class AuditAdminDeleteTests(unittest.TestCase):
         headers = {}
         if csrf_value:
             headers["X-CSRF-Token"] = csrf_value
-        delete_resp = self.client.delete(f"/admin/audit-logs/{log_id}", json={"reason": "cleanup test"}, headers=headers)
+        delete_resp = self.client.delete(
+            f"/admin/audit-logs/{log_id}",
+            json={"reason": "cleanup test"},
+            headers=headers,
+        )
         self.assertEqual(delete_resp.status_code, 200)
 
         # ensure gone
         logs = self.client.get("/admin/audit-logs")
         self.assertEqual(logs.status_code, 200)
         body = logs.get_json()
-        matching = [l for l in body.get("logs", []) if l.get("action") == "test_event" and l.get("resource_type") == "test"]
+        matching = [
+            l
+            for l in body.get("logs", [])
+            if l.get("action") == "test_event" and l.get("resource_type") == "test"
+        ]
         self.assertEqual(matching, [])
 
 

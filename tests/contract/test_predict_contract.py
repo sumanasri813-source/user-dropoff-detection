@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from typing import Any, Dict
 
-from src.api.app import app as flask_app
 import src.api.app as api_app_module
+from src.api.app import app as flask_app
 
 try:
     from jsonschema import Draft202012Validator
@@ -23,14 +23,19 @@ class PredictContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         if Draft202012Validator is None:
-            raise unittest.SkipTest("jsonschema is not installed. Install with: pip install jsonschema")
+            raise unittest.SkipTest(
+                "jsonschema is not installed. Install with: pip install jsonschema"
+            )
 
         cls.schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         cls.request_validator = Draft202012Validator(
             {"$ref": "#/$defs/PublicPredictRequest", "$defs": cls.schema["$defs"]}
         )
         cls.success_validator = Draft202012Validator(
-            {"$ref": "#/$defs/PublicPredictSuccessResponse", "$defs": cls.schema["$defs"]}
+            {
+                "$ref": "#/$defs/PublicPredictSuccessResponse",
+                "$defs": cls.schema["$defs"],
+            }
         )
         cls.error_validator = Draft202012Validator(
             {"$ref": "#/$defs/PublicPredictErrorResponse", "$defs": cls.schema["$defs"]}
@@ -39,7 +44,9 @@ class PredictContractTests(unittest.TestCase):
     def test_public_request_fixture_matches_schema(self) -> None:
         payload = self._load_fixture("public_predict_valid.json")
         errors = list(self.request_validator.iter_errors(payload))
-        self.assertEqual(errors, [], f"Schema validation errors: {[e.message for e in errors]}")
+        self.assertEqual(
+            errors, [], f"Schema validation errors: {[e.message for e in errors]}"
+        )
 
     def test_invalid_public_request_fixture_fails_schema(self) -> None:
         payload = self._load_fixture("public_predict_invalid.json")
@@ -54,7 +61,12 @@ class PredictContractTests(unittest.TestCase):
         try:
             api_app_module.model = object()
 
-            def _stub_predict_one(model: Any, payload: Dict[str, Any], threshold: float, risk_levels: Dict[str, float]):
+            def _stub_predict_one(
+                model: Any,
+                payload: Dict[str, Any],
+                threshold: float,
+                risk_levels: Dict[str, float],
+            ):
                 return {
                     "dropoff_probability": 0.8123,
                     "predicted_label": 1,
@@ -68,7 +80,9 @@ class PredictContractTests(unittest.TestCase):
                 "days_signup_age": valid_request["features"]["days_signup_age"],
                 "recency_days": valid_request["features"]["recency_days"],
                 "frequency_total": valid_request["features"]["frequency_total"],
-                "session_duration_avg": valid_request["features"]["session_duration_avg"],
+                "session_duration_avg": valid_request["features"][
+                    "session_duration_avg"
+                ],
                 "feature_count_used": valid_request["features"]["feature_count_used"],
                 "device_type": valid_request["session"]["device_type"],
                 "os_type": valid_request["session"]["os_type"],
@@ -81,9 +95,13 @@ class PredictContractTests(unittest.TestCase):
                 self.assertEqual(resp.status_code, 200)
                 model_response = resp.get_json()
 
-            public_response = self._to_public_success(valid_request["request_id"], model_response)
+            public_response = self._to_public_success(
+                valid_request["request_id"], model_response
+            )
             errors = list(self.success_validator.iter_errors(public_response))
-            self.assertEqual(errors, [], f"Schema validation errors: {[e.message for e in errors]}")
+            self.assertEqual(
+                errors, [], f"Schema validation errors: {[e.message for e in errors]}"
+            )
         finally:
             api_app_module.model = original_model
             api_app_module.predict_one = original_predict_one
@@ -94,8 +112,12 @@ class PredictContractTests(unittest.TestCase):
         python_payload = {
             "days_signup_age": invalid_request["features"].get("days_signup_age", 10),
             "frequency_total": invalid_request["features"].get("frequency_total", 1),
-            "session_duration_avg": invalid_request["features"].get("session_duration_avg", 1),
-            "feature_count_used": invalid_request["features"].get("feature_count_used", -1),
+            "session_duration_avg": invalid_request["features"].get(
+                "session_duration_avg", 1
+            ),
+            "feature_count_used": invalid_request["features"].get(
+                "feature_count_used", -1
+            ),
             "device_type": invalid_request["session"].get("device_type", "mobile"),
             "os_type": invalid_request["session"].get("os_type", "android"),
             "user_segment": invalid_request["user"].get("segment", "free"),
@@ -119,7 +141,9 @@ class PredictContractTests(unittest.TestCase):
         }
 
         errors = list(self.error_validator.iter_errors(public_error))
-        self.assertEqual(errors, [], f"Schema validation errors: {[e.message for e in errors]}")
+        self.assertEqual(
+            errors, [], f"Schema validation errors: {[e.message for e in errors]}"
+        )
 
     def test_predict_requires_api_key_when_enabled(self) -> None:
         original_require_auth = api_app_module.require_auth
@@ -146,7 +170,9 @@ class PredictContractTests(unittest.TestCase):
                 unauthorized = client.post("/predict", json=payload)
                 self.assertEqual(unauthorized.status_code, 401)
 
-                authorized = client.post("/predict", json=payload, headers={"X-API-Key": "test-key"})
+                authorized = client.post(
+                    "/predict", json=payload, headers={"X-API-Key": "test-key"}
+                )
                 self.assertIn(authorized.status_code, {200, 400})
         finally:
             api_app_module.require_auth = original_require_auth
@@ -163,7 +189,12 @@ class PredictContractTests(unittest.TestCase):
             api_app_module.api_key = "test-key"
             api_app_module.model = object()
 
-            def _stub_predict_batch(model: Any, records: list[Dict[str, Any]], threshold: float, risk_levels: Dict[str, float]):
+            def _stub_predict_batch(
+                model: Any,
+                records: list[Dict[str, Any]],
+                threshold: float,
+                risk_levels: Dict[str, float],
+            ):
                 return {
                     "total_records": len(records),
                     "successful_predictions": len(records),
@@ -202,7 +233,9 @@ class PredictContractTests(unittest.TestCase):
                 unauthorized = client.post("/predict-batch", json=payload)
                 self.assertEqual(unauthorized.status_code, 401)
 
-                authorized = client.post("/predict-batch", json=payload, headers={"X-API-Key": "test-key"})
+                authorized = client.post(
+                    "/predict-batch", json=payload, headers={"X-API-Key": "test-key"}
+                )
                 self.assertEqual(authorized.status_code, 200)
         finally:
             api_app_module.require_auth = original_require_auth
@@ -211,7 +244,9 @@ class PredictContractTests(unittest.TestCase):
             api_app_module.predict_batch = original_predict_batch
 
     @staticmethod
-    def _to_public_success(request_id: str, model_response: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_public_success(
+        request_id: str, model_response: Dict[str, Any]
+    ) -> Dict[str, Any]:
         return {
             "request_id": request_id,
             "prediction": {

@@ -8,7 +8,7 @@ import statistics
 import threading
 import time
 from collections import Counter, defaultdict
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -53,16 +53,48 @@ class LoadTestSummary:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run a simple API load test against the user dropoff service.")
-    parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="Base URL of the API under test")
+    parser = argparse.ArgumentParser(
+        description="Run a simple API load test against the user dropoff service."
+    )
+    parser.add_argument(
+        "--base-url",
+        default="http://127.0.0.1:8000",
+        help="Base URL of the API under test",
+    )
     parser.add_argument("--duration", type=int, default=300, help="Duration in seconds")
-    parser.add_argument("--concurrency", type=int, default=6, help="Number of worker threads")
+    parser.add_argument(
+        "--concurrency", type=int, default=6, help="Number of worker threads"
+    )
     parser.add_argument("--api-key", default="", help="Optional X-API-Key header value")
-    parser.add_argument("--predict-weight", type=int, default=8, help="Relative weight for /predict requests")
-    parser.add_argument("--health-weight", type=int, default=3, help="Relative weight for /health requests")
-    parser.add_argument("--batch-weight", type=int, default=1, help="Relative weight for /predict-batch requests")
-    parser.add_argument("--output", default="results/load_test_summary.json", help="Where to write the JSON summary")
-    parser.add_argument("--sample-limit", type=int, default=25, help="How many request samples to keep in the summary")
+    parser.add_argument(
+        "--predict-weight",
+        type=int,
+        default=8,
+        help="Relative weight for /predict requests",
+    )
+    parser.add_argument(
+        "--health-weight",
+        type=int,
+        default=3,
+        help="Relative weight for /health requests",
+    )
+    parser.add_argument(
+        "--batch-weight",
+        type=int,
+        default=1,
+        help="Relative weight for /predict-batch requests",
+    )
+    parser.add_argument(
+        "--output",
+        default="results/load_test_summary.json",
+        help="Where to write the JSON summary",
+    )
+    parser.add_argument(
+        "--sample-limit",
+        type=int,
+        default=25,
+        help="How many request samples to keep in the summary",
+    )
     return parser.parse_args()
 
 
@@ -94,7 +126,17 @@ def choose_endpoint(weights: Dict[str, int]) -> str:
     return random.choices(population, weights=values, k=1)[0]
 
 
-def worker(stop_time: float, base_url: str, headers: Dict[str, str], weights: Dict[str, int], samples: List[Sample], samples_lock: threading.Lock, counters: Counter, latencies: List[float], latency_lock: threading.Lock) -> None:
+def worker(
+    stop_time: float,
+    base_url: str,
+    headers: Dict[str, str],
+    weights: Dict[str, int],
+    samples: List[Sample],
+    samples_lock: threading.Lock,
+    counters: Counter,
+    latencies: List[float],
+    latency_lock: threading.Lock,
+) -> None:
     session = requests.Session()
     while time.time() < stop_time:
         endpoint = choose_endpoint(weights)
@@ -130,8 +172,17 @@ def worker(stop_time: float, base_url: str, headers: Dict[str, str], weights: Di
                     counters["success"] += 1
                 else:
                     counters["failure"] += 1
-                counters[f"status_{status_code if status_code is not None else 'error'}"] += 1
-                samples.append(Sample(endpoint=endpoint, status_code=status_code, latency_ms=latency_ms, error=error))
+                counters[
+                    f"status_{status_code if status_code is not None else 'error'}"
+                ] += 1
+                samples.append(
+                    Sample(
+                        endpoint=endpoint,
+                        status_code=status_code,
+                        latency_ms=latency_ms,
+                        error=error,
+                    )
+                )
 
         time.sleep(random.uniform(0.05, 0.25))
 
@@ -167,7 +218,17 @@ def run_load_test(args: argparse.Namespace) -> LoadTestSummary:
     threads = [
         threading.Thread(
             target=worker,
-            args=(stop_time, args.base_url.rstrip("/"), headers, weights, samples, samples_lock, counters, latencies, latency_lock),
+            args=(
+                stop_time,
+                args.base_url.rstrip("/"),
+                headers,
+                weights,
+                samples,
+                samples_lock,
+                counters,
+                latencies,
+                latency_lock,
+            ),
             daemon=True,
         )
         for _ in range(args.concurrency)
@@ -187,8 +248,14 @@ def run_load_test(args: argparse.Namespace) -> LoadTestSummary:
         total_requests=total_requests,
         succeeded_requests=counters["success"],
         failed_requests=counters["failure"],
-        status_counts={key.removeprefix("status_"): value for key, value in counters.items() if key.startswith("status_")},
-        endpoint_counts={key: value for key, value in counters.items() if key in weights},
+        status_counts={
+            key.removeprefix("status_"): value
+            for key, value in counters.items()
+            if key.startswith("status_")
+        },
+        endpoint_counts={
+            key: value for key, value in counters.items() if key in weights
+        },
         p50_latency_ms=round(percentile(latencies, 50), 2),
         p95_latency_ms=round(percentile(latencies, 95), 2),
         p99_latency_ms=round(percentile(latencies, 99), 2),
@@ -200,13 +267,17 @@ def run_load_test(args: argparse.Namespace) -> LoadTestSummary:
 
 def main() -> int:
     args = parse_args()
-    print(f"Running load test against {args.base_url} for {args.duration}s with {args.concurrency} workers")
+    print(
+        f"Running load test against {args.base_url} for {args.duration}s with {args.concurrency} workers"
+    )
     summary = run_load_test(args)
     print(json.dumps(asdict(summary), indent=2, sort_keys=True))
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(asdict(summary), indent=2, sort_keys=True), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(asdict(summary), indent=2, sort_keys=True), encoding="utf-8"
+    )
     print(f"Wrote load test summary to {output_path}")
     return 0
 

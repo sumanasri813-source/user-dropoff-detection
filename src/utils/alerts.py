@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import tempfile
 from collections import deque
 from contextlib import contextmanager
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List
-import tempfile
 
 import yaml
 
@@ -46,8 +46,13 @@ def load_alert_thresholds() -> Dict[str, Any]:
 
     merged = defaults.copy()
     merged["service"] = {
-        "max_prediction_latency_ms": service_cfg.get("max_prediction_latency_ms", defaults["service"]["max_prediction_latency_ms"]),
-        "min_health_status": service_cfg.get("min_health_status", defaults["service"]["min_health_status"]),
+        "max_prediction_latency_ms": service_cfg.get(
+            "max_prediction_latency_ms",
+            defaults["service"]["max_prediction_latency_ms"],
+        ),
+        "min_health_status": service_cfg.get(
+            "min_health_status", defaults["service"]["min_health_status"]
+        ),
     }
     return merged
 
@@ -72,7 +77,9 @@ def _alerts_write_lock():
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
-def _find_last_record_for_type(alert_type: str) -> tuple[Dict[str, Any] | None, datetime | None]:
+def _find_last_record_for_type(
+    alert_type: str,
+) -> tuple[Dict[str, Any] | None, datetime | None]:
     if not ALERTS_PATH.exists() or ALERTS_PATH.stat().st_size == 0:
         return None, None
 
@@ -145,7 +152,7 @@ def _compute_alert_hash(alert: Dict[str, Any]) -> str:
 def _should_persist_alert(alert: Dict[str, Any], throttle_minutes: int) -> bool:
     """
     Determine if an alert should be persisted based on dedup/throttle rules.
-    
+
     Returns True if:
     - This is the first time seeing this alert type, OR
     - The alert content has changed (different hash), OR
@@ -249,7 +256,9 @@ def _prune_alert_history() -> None:
                 pass
 
 
-def evaluate_alert_rules(snapshot: Dict[str, Any], health_status: str) -> List[Dict[str, Any]]:
+def evaluate_alert_rules(
+    snapshot: Dict[str, Any], health_status: str
+) -> List[Dict[str, Any]]:
     thresholds = load_alert_thresholds()
     service = thresholds.get("service", {})
 
@@ -298,7 +307,9 @@ def evaluate_alert_rules(snapshot: Dict[str, Any], health_status: str) -> List[D
     return alerts
 
 
-def persist_alerts(alerts: List[Dict[str, Any]], throttle_minutes: int = 15) -> str | None:
+def persist_alerts(
+    alerts: List[Dict[str, Any]], throttle_minutes: int = 15
+) -> str | None:
     """
     Persist alerts to JSONL file with dedup/throttle logic.
 
@@ -313,7 +324,9 @@ def persist_alerts(alerts: List[Dict[str, Any]], throttle_minutes: int = 15) -> 
         return None
 
     with _alerts_write_lock():
-        alerts_to_persist = [alert for alert in alerts if _should_persist_alert(alert, throttle_minutes)]
+        alerts_to_persist = [
+            alert for alert in alerts if _should_persist_alert(alert, throttle_minutes)
+        ]
 
         try:
             filtered: List[Dict[str, Any]] = []

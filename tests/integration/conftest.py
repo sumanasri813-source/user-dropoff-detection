@@ -12,7 +12,6 @@ from urllib.request import urlopen
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 API_HEALTH_URL = os.getenv("INTEGRATION_API_HEALTH_URL", "http://127.0.0.1:8000/health")
 GATEWAY_HEALTH_URL = os.getenv("GATEWAY_HEALTH_URL", "http://127.0.0.1:8080/health")
