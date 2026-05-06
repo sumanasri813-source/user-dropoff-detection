@@ -12,13 +12,11 @@ from flask import (
     g,
     jsonify,
     make_response,
-    redirect,
     render_template,
     request,
     send_from_directory,
 )
 from flask import session as flask_session
-from flask import url_for
 from jose import JWTError
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -45,7 +43,7 @@ from src.db.crud import (
     revoke_refresh_token,
     update_user,
 )
-from src.db.models import UserProfile
+from src.db.models import AuditLog, UserProfile
 from src.utils.alerts import evaluate_alert_rules, persist_alerts
 from src.utils.auth import (
     create_access_token,
@@ -54,7 +52,6 @@ from src.utils.auth import (
     create_token_or_key_guard,
     decode_access_token,
     decode_refresh_token,
-    load_jwt_config,
     load_security_config,
     load_session_secret_key,
     require_role,
@@ -76,7 +73,7 @@ from src.utils.errors import (
     RateLimitError,
     handle_error,
 )
-from src.utils.resilience import PerKeyRateLimiter, with_circuit_breaker
+from src.utils.resilience import PerKeyRateLimiter
 from src.utils.runtime_config import (
     load_api_config,
     load_model_path,

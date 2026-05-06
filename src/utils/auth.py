@@ -4,7 +4,7 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import Any, Callable, List, Mapping, Tuple
+from typing import Any, Callable, Mapping, Tuple
 
 from flask import jsonify, request
 from jose import JWTError, jwt

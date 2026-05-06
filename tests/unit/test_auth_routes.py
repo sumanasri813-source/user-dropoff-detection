@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import unittest
-from typing import Any, Dict
 
 from src.api import app as api_app_module
 from src.api.app import app as flask_app

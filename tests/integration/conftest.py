@@ -7,7 +7,6 @@ import time
 from contextlib import suppress
 from pathlib import Path
 from typing import Iterator
-from urllib.error import URLError
 from urllib.request import urlopen
 
 import pytest

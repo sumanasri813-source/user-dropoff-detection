@@ -96,9 +96,10 @@ class AuditAdminDeleteTests(unittest.TestCase):
         self.assertEqual(logs.status_code, 200)
         body = logs.get_json()
         matching = [
-            l
-            for l in body.get("logs", [])
-            if l.get("action") == "test_event" and l.get("resource_type") == "test"
+            log_entry
+            for log_entry in body.get("logs", [])
+            if log_entry.get("action") == "test_event"
+            and log_entry.get("resource_type") == "test"
         ]
         self.assertEqual(matching, [])
 

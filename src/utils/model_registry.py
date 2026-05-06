@@ -11,8 +11,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import pandas as pd
-
 MODELS_DIR = Path("models")
 REGISTRY_PATH = MODELS_DIR / "model_registry.json"
 

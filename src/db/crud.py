@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import json
-import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from src.db.models import AuditLog, PredictionRecord, RefreshToken, UserProfile
@@ -216,7 +214,7 @@ def cleanup_expired_refresh_tokens(session: Session) -> int:
     now = datetime.now(timezone.utc)
     expired = (
         session.query(RefreshToken)
-        .filter(RefreshToken.expires_at != None)
+        .filter(RefreshToken.expires_at.is_not(None))
         .filter(RefreshToken.expires_at < now)
         .all()
     )
@@ -269,7 +267,7 @@ def cleanup_old_audit_logs(session: Session, retention_days: int = 90) -> int:
     cutoff = datetime.now(timezone.utc) - timedelta(days=int(retention_days))
     old = (
         session.query(AuditLog)
-        .filter(AuditLog.created_at != None)
+        .filter(AuditLog.created_at.is_not(None))
         .filter(AuditLog.created_at < cutoff)
         .all()
     )
@@ -297,7 +295,10 @@ def list_predictions(
     risk_level: str | None = None,
     min_probability: float | None = None,
 ) -> List[Dict[str, Any]]:
-    """List predictions with optimized filtering. O(log n + k) with indexes on risk_level, created_at, and dropoff_probability."""
+    """List predictions with optimized filtering.
+
+    O(log n + k) with indexes on risk_level, created_at, and dropoff_probability.
+    """
     query = session.query(PredictionRecord)
     if risk_level:
         query = query.filter(PredictionRecord.risk_level == str(risk_level))

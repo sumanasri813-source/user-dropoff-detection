@@ -3,14 +3,12 @@ Database models for User Dropoff Detection system.
 Handles users, predictions, audit logs, and system state.
 """
 
-import enum
 from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum,
     Float,
     ForeignKey,
     Index,
