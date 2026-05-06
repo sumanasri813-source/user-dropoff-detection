@@ -10,7 +10,7 @@ import time
 from collections import deque
 from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 from typing import Any, Deque, Dict, List, Optional
@@ -28,7 +28,7 @@ request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 
 @dataclass
 class MetricEvent:
-    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     event_type: str = ""
     module: str = ""
     metric_name: str = ""
@@ -160,7 +160,7 @@ class MetricsCollector:
     def save_metrics(self, output_path: Optional[str] = None) -> str:
         out_path: Path
         if output_path is None:
-            out_path = METRICS_DIR / f"metrics_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.jsonl"
+            out_path = METRICS_DIR / f"metrics_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.jsonl"
         else:
             out_path = Path(output_path)
 
@@ -176,13 +176,13 @@ class MetricsCollector:
     def persist_snapshot(self, output_path: Optional[str] = None) -> str:
         out_path: Path
         if output_path is None:
-            out_path = OBS_METRICS_DIR / f"snapshot_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
+            out_path = OBS_METRICS_DIR / f"snapshot_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
         else:
             out_path = Path(output_path)
 
         out_path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "snapshot": self.get_api_snapshot(),
             "summary": self.get_summary(),
         }
