@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -93,7 +93,7 @@ class HealthChecker:
         status = "healthy" if all_ok else ("degraded" if sum([model_ok, data_ok, metrics_ok]) >= 2 else "unhealthy")
 
         return HealthStatus(
-            timestamp=datetime.now(UTC).isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             status=status,
             model_available=model_ok,
             data_available=data_ok,
