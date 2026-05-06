@@ -50,9 +50,7 @@ jobs:
           python -m pip install -r e2e/requirements.txt
 
       - name: Install Playwright browsers
-        uses: microsoft/playwright-github-action@v1
-        with:
-          install-deps: true
+        run: python -m playwright install --with-deps chromium
 
       - name: Run test suite
         env:
