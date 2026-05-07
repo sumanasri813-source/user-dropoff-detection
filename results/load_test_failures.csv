@@ -1,0 +1,6 @@
+Method,Name,Error,Occurrences
+GET,GET /,"ConnectionRefusedError(111, 'Connection refused')",3726
+GET,GET /monitor,"ConnectionRefusedError(111, 'Connection refused')",396
+GET,GET /health,"ConnectionRefusedError(111, 'Connection refused')",2147
+POST,POST /predict/batch,"ConnectionRefusedError(111, 'Connection refused')",358
+POST,POST /predict,"ConnectionRefusedError(111, 'Connection refused')",770
