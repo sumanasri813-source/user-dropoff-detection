@@ -1,0 +1,404 @@
+---
+# FastAPI Deployment for Canary Rollout
+# Deploy alongside existing Flask deployment (v1.5.0)
+# Initial traffic split: 5% FastAPI / 95% Flask
+# Increase gradually: 5% → 25% → 50% → 100%
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fastapi-config
+  namespace: production
+data:
+  ENVIRONMENT: production
+  FLASK_ENV: production
+  LOG_LEVEL: info
+  DATABASE_TYPE: postgresql
+  CACHE_ENABLED: "true"
+  MONITOR_INTERVAL_SECONDS: "30"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dropoff-api-fastapi
+  namespace: production
+  labels:
+    app: dropoff-api
+    version: v2.0.0-rc1
+    component: fastapi-async
+spec:
+  replicas: 3  # Start with 3 replicas for canary
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime
+  selector:
+    matchLabels:
+      app: dropoff-api
+      version: v2.0.0-rc1
+  template:
+    metadata:
+      labels:
+        app: dropoff-api
+        version: v2.0.0-rc1
+        component: fastapi-async
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: dropoff-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # Init container: wait for database
+      initContainers:
+      - name: wait-for-db
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z dropoff-db 5432; do echo waiting for db; sleep 2; done;']
+
+      containers:
+      - name: fastapi
+        image: dropoff-detection:v2.0.0-rc1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: ENVIRONMENT
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: dropoff-secrets
+              key: DATABASE_URL
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: dropoff-secrets
+              key: API_KEY_SECRET
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: LOG_LEVEL
+
+        # Startup probe: give container time to start (30 sec max)
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 30  # 5 min max wait
+
+        # Readiness probe: can handle traffic?
+        readinessProbe:
+          httpGet:
+            path: /monitor
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2  # Remove from LB after 2 failures
+          successThreshold: 1
+
+        # Liveness probe: is container alive?
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3  # Restart after 3 failures
+
+        # Resource requests/limits
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+
+        # Security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+        # Volume mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /cache
+
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+
+      # Node affinity: prefer nodes with label 'workload=api'
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: workload
+                operator: In
+                values:
+                - api
+
+      # Pod disruption budget: keep at least 2 running
+      podDisruptionBudget:
+        minAvailable: 2
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dropoff-api-fastapi
+  namespace: production
+  labels:
+    app: dropoff-api
+    version: v2.0.0-rc1
+spec:
+  type: ClusterIP
+  selector:
+    app: dropoff-api
+    version: v2.0.0-rc1
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  sessionAffinity: None
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+
+---
+# Virtual Service for traffic splitting (Istio)
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: dropoff-api
+  namespace: production
+spec:
+  hosts:
+  - dropoff-api.production.svc.cluster.local
+  - dropoff-detection.com
+  http:
+  # Canary phase: 5% traffic to FastAPI v2, 95% to Flask v1
+  - route:
+    - destination:
+        host: dropoff-api-flask
+        port:
+          number: 5000
+      weight: 95
+    - destination:
+        host: dropoff-api-fastapi
+        port:
+          number: 8000
+      weight: 5
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+
+  # Phase 2: 25% FastAPI / 75% Flask (remove canary label check)
+  # http:
+  # - route:
+  #   - destination:
+  #       host: dropoff-api-flask
+  #       port:
+  #         number: 5000
+  #     weight: 75
+  #   - destination:
+  #       host: dropoff-api-fastapi
+  #       port:
+  #         number: 8000
+  #     weight: 25
+
+  # Phase 3: 50% FastAPI / 50% Flask
+  # http:
+  # - route:
+  #   - destination:
+  #       host: dropoff-api-flask
+  #       port:
+  #         number: 5000
+  #     weight: 50
+  #   - destination:
+  #       host: dropoff-api-fastapi
+  #       port:
+  #         number: 8000
+  #     weight: 50
+
+---
+# Destination Rule for subset management
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: dropoff-api
+  namespace: production
+spec:
+  host: dropoff-api.production.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 2
+        h2UpgradePolicy: UPGRADE
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minRequestVolume: 50
+  subsets:
+  - name: v1
+    labels:
+      version: v1.5.0
+  - name: v2
+    labels:
+      version: v2.0.0-rc1
+
+---
+# HPA: Auto-scale FastAPI if CPU/Memory exceed threshold
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: dropoff-api-fastapi-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dropoff-api-fastapi
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Max
+
+---
+# PodDisruptionBudget: ensure minimum availability during updates
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dropoff-api-fastapi-pdb
+  namespace: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: dropoff-api
+      version: v2.0.0-rc1
+
+---
+# ServiceMonitor for Prometheus scraping
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dropoff-api-fastapi
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: dropoff-api
+      version: v2.0.0-rc1
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# Alert rules for canary monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: dropoff-api-fastapi-alerts
+  namespace: production
+spec:
+  groups:
+  - name: dropoff-api-fastapi
+    interval: 30s
+    rules:
+    - alert: HighErrorRate
+      expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.01
+      for: 2m
+      annotations:
+        summary: "High error rate detected (>1%)"
+        description: "FastAPI v2.0.0-rc1 error rate exceeded 1%"
+
+    - alert: HighLatency
+      expr: histogram_quantile(0.99, http_request_duration_seconds_bucket) > 0.5
+      for: 2m
+      annotations:
+        summary: "High latency detected (p99 > 500ms)"
+
+    - alert: HighMemoryUsage
+      expr: container_memory_usage_bytes > 300_000_000
+      for: 2m
+      annotations:
+        summary: "High memory usage (>300MB)"
+
+    - alert: PodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total[15m]) > 0.1
+      for: 5m
+      annotations:
+        summary: "Pod is crash looping"
