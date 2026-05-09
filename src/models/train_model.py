@@ -10,7 +10,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import accuracy_score, classification_report, f1_score, precision_score, recall_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -73,7 +73,7 @@ def _get_model_candidates(random_seed: int) -> Dict[str, object]:
             min_samples_leaf=2,
             random_state=random_seed,
             class_weight="balanced_subsample",
-            n_jobs=-1,
+            n_jobs=1,
         ),
     }
 
@@ -89,6 +89,7 @@ def _get_model_candidates(random_seed: int) -> Dict[str, object]:
             objective="binary:logistic",
             eval_metric="logloss",
             random_state=random_seed,
+            n_jobs=1,
         )
     except Exception:
         # Optional dependency: training still proceeds with baseline models.
@@ -101,6 +102,7 @@ def _evaluate_pipeline(pipeline: Pipeline, X_test: pd.DataFrame, y_test: pd.Seri
     y_pred = pipeline.predict(X_test)
     y_prob = pipeline.predict_proba(X_test)[:, 1]
     return {
+        "accuracy": float(accuracy_score(y_test, y_pred)),
         "roc_auc": float(roc_auc_score(y_test, y_prob)),
         "precision": float(precision_score(y_test, y_pred, zero_division=0)),
         "recall": float(recall_score(y_test, y_pred, zero_division=0)),

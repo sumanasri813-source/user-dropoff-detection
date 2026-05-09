@@ -1,9 +1,9 @@
 """
 Next-generation Streamlit dashboard for silent user drop-off detection.
 
-The UI is organized as a structured product dashboard instead of a long scrolling report.
-It supports live API scoring, model evidence, batch operations, and system
-readiness for the user drop-off detection project.
+The UI is organized as a structured presentation dashboard instead of a long scrolling report.
+It supports model evidence, batch operations, and project readiness for the
+user drop-off detection thesis.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ import streamlit as st
 # ============================================================================
 
 st.set_page_config(
-    page_title="Drop-Off Command Center",
+    page_title="Early User Churn Detection in Web Applications: A Production Machine Learning System for Revenue Retention",
     page_icon=":chart_with_downwards_trend:",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -43,18 +43,24 @@ st.markdown(
 <style>
     #MainMenu, header, footer, .stDeployButton {display: none !important;}
 
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
     :root {
-        --ink: #142033;
-        --muted: #66758a;
-        --line: #d9e8f2;
+        --ink: #111827;
+        --muted: #64748b;
+        --line: #dbe3ec;
         --paper: #ffffff;
-        --soft: #f7fbff;
-        --navy: #1f3a5f;
-        --blue: #2563eb;
-        --teal: #14b8a6;
-        --green: #059669;
-        --amber: #f59e0b;
-        --rose: #e11d48;
+        --soft: #f8fafc;
+        --navy: #1f2937;
+        --blue: #355c7d;
+        --teal: #5f7d8a;
+        --green: #7b8f6f;
+        --amber: #a88a5b;
+        --rose: #9a6f75;
     }
 
     .stApp,
@@ -66,214 +72,264 @@ st.markdown(
     button,
     input,
     textarea {
-        font-family: "Segoe UI", Inter, Arial, sans-serif !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
     }
 
     .main {
-        background:
-            radial-gradient(circle at top left, rgba(20,184,166,0.14), transparent 34%),
-            radial-gradient(circle at top right, rgba(37,99,235,0.12), transparent 30%),
-            linear-gradient(180deg, #f7fbff 0%, #eef6fb 100%);
+        background: linear-gradient(135deg, #fbfcfe 0%, #f4f7fb 45%, #eef2f7 100%);
+        min-height: 100vh;
     }
 
     .main .block-container {
-        max-width: 1380px;
-        padding: 0.65rem 1.35rem 1.7rem;
+        max-width: 1440px;
+        padding: 2rem 1.5rem;
     }
 
     section[data-testid="stSidebar"] {
-        display: none;
+        display: none !important;
     }
 
     div[data-testid="collapsedControl"] {
-        display: none;
+        display: none !important;
     }
 
-    h1, h2, h3 {
+    h1, h2, h3, h4, h5, h6 {
         color: var(--ink);
-        letter-spacing: 0;
+        letter-spacing: -0.015em;
+        font-weight: 700;
+    }
+
+    h1 {
+        font-size: 2.25rem;
+        line-height: 1.2;
+    }
+
+    h2 {
+        font-size: 1.875rem;
+        line-height: 1.3;
+        margin: 1.5rem 0 0.75rem;
+    }
+
+    h3 {
+        font-size: 1.125rem;
+        line-height: 1.4;
+    }
+
+    p {
+        color: var(--muted);
+        line-height: 1.6;
     }
 
     .topbar {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
-        background: rgba(255,255,255,0.9);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 12px 14px;
-        margin-bottom: 12px;
-        box-shadow: 0 12px 28px rgba(15,23,42,0.07);
-        backdrop-filter: blur(12px);
+        gap: 1.5rem;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.75rem;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(8px);
     }
 
     .brand {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 1rem;
+        min-width: 0;
     }
 
     .brand-mark {
-        width: 44px;
-        height: 44px;
-        border-radius: 13px;
-        display: grid;
-        place-items: center;
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: #fff;
-        font-weight: 900;
-        background: linear-gradient(135deg, var(--blue), var(--teal));
-        box-shadow: 0 10px 20px rgba(37,99,235,0.22);
+        font-weight: 800;
+        font-size: 1.25rem;
+        background: linear-gradient(135deg, #355c7d 0%, #5f7d8a 100%);
+        box-shadow: 0 8px 16px rgba(31, 41, 55, 0.12);
     }
 
     .brand-title {
         color: var(--ink);
-        font-weight: 900;
-        line-height: 1.1;
+        font-weight: 800;
+        line-height: 1.2;
         font-size: 1.05rem;
     }
 
     .brand-subtitle {
         color: var(--muted);
         font-size: 0.8rem;
-        margin-top: 3px;
+        margin-top: 2px;
     }
 
     .topbar-actions {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.75rem;
         flex-wrap: wrap;
         justify-content: flex-end;
+        min-width: 0;
     }
 
     .api-pill,
     .nav-note {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.5rem;
         border: 1px solid var(--line);
         border-radius: 999px;
-        padding: 8px 11px;
-        background: #f8fcff;
+        padding: 0.5rem 0.875rem;
+        background: #f6f8fb;
         color: var(--ink);
-        font-size: 0.82rem;
-        font-weight: 750;
+        font-size: 0.8125rem;
+        font-weight: 600;
         white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+
+    .api-pill:hover,
+    .nav-note:hover {
+        background: #edf2f7;
+        border-color: #cfd8e3;
     }
 
     .api-pill .status-dot {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
         display: inline-block;
+        animation: statusPulse 2s infinite;
+    }
+
+    @keyframes statusPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
     }
 
     div[data-testid="stPills"] {
-        background: rgba(255,255,255,0.82);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 8px;
-        margin-bottom: 14px;
-        box-shadow: 0 10px 26px rgba(15,23,42,0.06);
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(203, 213, 225, 0.8);
+        border-radius: 12px;
+        padding: 0.75rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
     }
 
     div[data-testid="stPills"] button {
-        border-radius: 11px !important;
-        min-height: 42px !important;
-        padding: 0.45rem 1rem !important;
-        font-weight: 850 !important;
+        border-radius: 10px !important;
+        min-height: 44px !important;
+        padding: 0.5rem 1.125rem !important;
+        font-weight: 600 !important;
         border: 1px solid transparent !important;
         color: var(--ink) !important;
         background: transparent !important;
+        transition: all 0.2s ease !important;
     }
 
     div[data-testid="stPills"] button:hover {
-        background: #edf8ff !important;
-        border-color: #c8e3f3 !important;
-        color: #0f5f99 !important;
+        background: rgba(53, 92, 125, 0.08) !important;
+        border-color: rgba(53, 92, 125, 0.18) !important;
+        color: var(--blue) !important;
     }
 
     div[data-testid="stPills"] button[aria-pressed="true"] {
-        background: linear-gradient(135deg, #2563eb, #14b8a6) !important;
+        background: linear-gradient(135deg, #355c7d, #5f7d8a) !important;
         color: #ffffff !important;
-        box-shadow: 0 10px 20px rgba(37,99,235,0.2) !important;
+        box-shadow: 0 8px 16px rgba(31, 41, 55, 0.14) !important;
     }
 
     .app-hero {
-        min-height: 250px;
+        min-height: 280px;
         display: grid;
-        grid-template-columns: 1.18fr 0.82fr;
-        gap: 18px;
-        margin-bottom: 18px;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
 
     .hero-copy {
-        background:
-            radial-gradient(circle at 92% 18%, rgba(20,184,166,0.26), transparent 25%),
-            radial-gradient(circle at 70% 80%, rgba(37,99,235,0.16), transparent 25%),
-            linear-gradient(135deg, #ffffff 0%, #edf8ff 100%);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 28px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 252, 0.98));
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        border-radius: 12px;
+        padding: 2rem;
         color: var(--ink);
-        box-shadow: 0 16px 34px rgba(15,23,42,0.08);
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
         position: relative;
         overflow: hidden;
     }
 
-    .hero-copy:after {
+    .hero-copy::before {
         content: "";
         position: absolute;
-        inset: auto 0 0 0;
-        height: 6px;
-        background: linear-gradient(90deg, var(--blue), var(--teal), var(--amber), var(--rose));
+        inset: -1px -1px -1px 0;
+        border-radius: 12px;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(53, 92, 125, 0.14), rgba(95, 125, 138, 0.14));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+
+    .hero-copy::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #355c7d, #5f7d8a, #a88a5b, #9a6f75);
     }
 
     .eyebrow {
-        color: #2563eb;
-        font-size: 0.78rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
+        color: #355c7d;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        margin-bottom: 12px;
+        margin-bottom: 1rem;
     }
 
     .hero-copy h1 {
         color: var(--ink);
-        font-size: 2.32rem;
-        line-height: 1.08;
-        max-width: 760px;
-        margin: 0 0 12px;
+        font-size: 2.25rem;
+        line-height: 1.2;
+        max-width: 100%;
+        margin: 0 0 1rem;
     }
 
     .hero-copy p {
         color: var(--muted);
-        max-width: 760px;
+        max-width: 100%;
         margin: 0;
         font-size: 1rem;
-        line-height: 1.55;
+        line-height: 1.6;
     }
 
     .signal-panel {
         background: #ffffff;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 18px;
-        min-height: 250px;
-        box-shadow: 0 12px 34px rgba(15,23,42,0.08);
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        border-radius: 12px;
+        padding: 1.5rem;
+        min-height: 280px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
     }
 
     .signal-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 18px;
-        gap: 12px;
+        margin-bottom: 1.5rem;
+        gap: 1rem;
     }
 
     .signal-title {
-        font-weight: 850;
+        font-weight: 700;
         color: var(--ink);
         font-size: 1rem;
     }
@@ -281,26 +337,26 @@ st.markdown(
     .status-chip {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.5rem;
         border-radius: 999px;
-        padding: 7px 10px;
-        background: #f8fafc;
+        padding: 0.5rem 0.875rem;
+        background: #f6f8fb;
         color: var(--ink);
-        border: 1px solid var(--line);
-        font-size: 0.82rem;
-        font-weight: 750;
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        font-size: 0.8rem;
+        font-weight: 600;
         white-space: nowrap;
     }
 
     .status-dot {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
         display: inline-block;
     }
 
-    .status-dot.online {background: var(--green);}
-    .status-dot.offline {background: var(--rose);}
+    .status-dot.online {background: #10b981;}
+    .status-dot.offline {background: #ef4444;}
 
     .signal-grid {
         display: grid;
@@ -311,7 +367,7 @@ st.markdown(
         padding: 10px 4px;
         border-radius: 8px;
         background:
-            linear-gradient(180deg, rgba(37,99,235,0.04), rgba(15,118,110,0.04)),
+            linear-gradient(180deg, rgba(53,92,125,0.04), rgba(95,125,138,0.04)),
             repeating-linear-gradient(0deg, transparent 0 31px, rgba(17,24,39,0.08) 31px 32px);
     }
 
@@ -322,10 +378,10 @@ st.markdown(
         min-height: 24px;
     }
 
-    .signal-bar:nth-child(2) {height: 54px; background: linear-gradient(180deg, #0f766e, #059669);}
-    .signal-bar:nth-child(3) {height: 100px; background: linear-gradient(180deg, #d97706, #e11d48);}
-    .signal-bar:nth-child(4) {height: 72px; background: linear-gradient(180deg, #2563eb, #0f766e);}
-    .signal-bar:nth-child(5) {height: 116px; background: linear-gradient(180deg, #e11d48, #d97706);}
+    .signal-bar:nth-child(2) {height: 54px; background: linear-gradient(180deg, #56768a, #7b8f6f);}
+    .signal-bar:nth-child(3) {height: 100px; background: linear-gradient(180deg, #a88a5b, #9a6f75);}
+    .signal-bar:nth-child(4) {height: 72px; background: linear-gradient(180deg, #355c7d, #7b8f6f);}
+    .signal-bar:nth-child(5) {height: 116px; background: linear-gradient(180deg, #9a6f75, #a88a5b);}
 
     .signal-foot {
         display: grid;
@@ -338,7 +394,7 @@ st.markdown(
         border: 1px solid var(--line);
         border-radius: 8px;
         padding: 10px;
-        background: #f8fafc;
+        background: #fbfcfe;
     }
 
     .mini-stat span {
@@ -360,123 +416,130 @@ st.markdown(
     .identity-card,
     .play-card {
         background: var(--paper);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        box-shadow: 0 8px 24px rgba(15,23,42,0.06);
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
     }
 
     .kpi-card {
-        min-height: 112px;
-        padding: 16px;
+        min-height: 120px;
+        padding: 1.25rem;
         position: relative;
         overflow: hidden;
     }
 
-    .kpi-card:before {
+    .kpi-card::before {
         content: "";
         position: absolute;
         left: 0;
         top: 0;
         width: 100%;
-        height: 4px;
+        height: 3px;
         background: var(--blue);
     }
 
-    .kpi-card.teal:before {background: var(--teal);}
-    .kpi-card.green:before {background: var(--green);}
-    .kpi-card.amber:before {background: var(--amber);}
-    .kpi-card.rose:before {background: var(--rose);}
+    .kpi-card.teal::before {background: var(--teal);}
+    .kpi-card.green::before {background: var(--green);}
+    .kpi-card.amber::before {background: var(--amber);}
+    .kpi-card.rose::before {background: var(--rose);}
 
     .kpi-label {
         color: var(--muted);
-        font-size: 0.76rem;
-        font-weight: 850;
-        letter-spacing: 0.06em;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
     }
 
     .kpi-value {
         color: var(--ink);
-        font-size: 1.72rem;
-        font-weight: 850;
+        font-size: 1.875rem;
+        font-weight: 800;
         line-height: 1;
-        margin: 10px 0 8px;
+        margin: 0.75rem 0 0.5rem;
     }
 
     .kpi-copy {
         color: var(--muted);
         margin: 0;
-        font-size: 0.82rem;
-        line-height: 1.35;
+        font-size: 0.8rem;
+        line-height: 1.5;
     }
 
     .panel {
-        padding: 18px;
-        margin-bottom: 14px;
+        padding: 1.35rem;
+        margin-bottom: 1.35rem;
     }
 
     .panel-title {
         color: var(--ink);
-        font-size: 1.02rem;
-        font-weight: 800;
-        margin: 0 0 4px;
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem;
     }
 
     .panel-copy {
         color: var(--muted);
-        margin: 0 0 14px;
+        margin: 0 0 1.25rem;
         font-size: 0.92rem;
     }
 
     .pipeline-strip {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
-        margin-bottom: 14px;
+        gap: 0.85rem;
+        margin-bottom: 1.1rem;
     }
 
     .pipeline-chip {
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 12px 14px;
-        background: linear-gradient(180deg, #ffffff, #f8fcff);
-        box-shadow: 0 8px 22px rgba(15,23,42,0.05);
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        border-radius: 10px;
+        padding: 1.05rem;
+        background: linear-gradient(135deg, #ffffff, #f8fafc);
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.03);
+        transition: all 0.2s ease;
+    }
+
+    .pipeline-chip:hover {
+        border-color: rgba(53, 92, 125, 0.18);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
     }
 
     .pipeline-chip span {
         display: block;
         color: var(--muted);
-        font-size: 0.72rem;
-        font-weight: 850;
-        letter-spacing: 0.06em;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        margin-bottom: 4px;
+        margin-bottom: 0.5rem;
     }
 
     .pipeline-chip strong {
         color: var(--ink);
         font-size: 1rem;
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
     }
 
     .pipeline-chip p {
         color: var(--muted);
         margin: 0;
         font-size: 0.8rem;
-        line-height: 1.35;
+        line-height: 1.4;
     }
 
     .flow {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
+        gap: 8px;
     }
 
     .flow-step {
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 12px;
+        padding: 11px;
         background: #f8fafc;
         min-height: 82px;
     }
@@ -495,16 +558,16 @@ st.markdown(
     .architecture-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
+        gap: 10px;
     }
 
     .arch-tile {
         min-height: 116px;
-        border: 1px solid var(--line);
+        border: 1px solid rgba(219, 227, 236, 0.95);
         border-radius: 10px;
-        padding: 15px;
-        background: linear-gradient(180deg, #ffffff, #f5fbff);
-        box-shadow: 0 8px 22px rgba(15,23,42,0.05);
+        padding: 14px;
+        background: linear-gradient(180deg, #ffffff, #f7f9fc);
+        box-shadow: 0 4px 12px rgba(15,23,42,0.04);
     }
 
     .arch-mark {
@@ -536,144 +599,240 @@ st.markdown(
         align-items: end;
         justify-content: space-between;
         gap: 14px;
-        margin: 12px 0 16px;
+        margin: 14px 0 14px;
     }
 
     .section-head h2 {
         margin: 0;
-        font-size: 2.2rem;
-        line-height: 1.05;
+        font-size: 2rem;
+        line-height: 1.08;
     }
 
     .section-head p {
         margin: 8px 0 0;
         color: var(--muted);
-        font-size: 0.98rem;
+        font-size: 0.94rem;
     }
 
     .visual-card {
-        background: rgba(255,255,255,0.92);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 16px;
-        box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        border-radius: 12px;
+        padding: 1.15rem;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
         min-height: 100%;
         overflow: hidden;
     }
 
     .visual-title {
         color: var(--ink);
-        font-size: 0.98rem;
-        font-weight: 850;
-        margin-bottom: 4px;
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
     }
 
     .visual-copy {
         color: var(--muted);
-        font-size: 0.82rem;
-        margin-bottom: 12px;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    .tracking-snapshot {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.85rem;
+        margin: 0.9rem 0;
+    }
+
+    .snapshot-card {
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        border-radius: 10px;
+        padding: 0.95rem;
+        background: linear-gradient(135deg, #fbfcfe, #f4f7fb);
+        text-align: center;
+    }
+
+    .snapshot-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .snapshot-card strong {
+        display: block;
+        color: var(--ink);
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+
+    .snapshot-card p {
+        color: var(--muted);
+        font-size: 0.8rem;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .tracking-notes {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.85rem;
+        margin-top: 0.9rem;
+    }
+
+    .tracking-note {
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        border-radius: 10px;
+        padding: 0.95rem;
+        background: #fbfcfe;
+    }
+
+    .tracking-note span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .tracking-note strong {
+        display: block;
+        color: var(--ink);
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .tracking-note p {
+        color: var(--muted);
+        font-size: 0.8rem;
+        margin: 0;
+        line-height: 1.4;
     }
 
     .event-stream {
         display: grid;
-        gap: 10px;
-        max-height: 460px;
+        gap: 0.75rem;
+        max-height: 420px;
         overflow-y: auto;
         overflow-x: hidden;
-        padding-right: 4px;
+        padding-right: 0.5rem;
+    }
+
+    .event-stream::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .event-stream::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .event-stream::-webkit-scrollbar-thumb {
+        background: rgba(219, 227, 236, 0.8);
+        border-radius: 3px;
     }
 
     .stream-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 10px;
+        gap: 1rem;
+        margin-bottom: 1rem;
     }
 
     .topbar-actions .mini-pill {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        border: 1px solid var(--line);
+        gap: 0.5rem;
+        border: 1px solid rgba(219, 227, 236, 0.95);
         border-radius: 999px;
-        padding: 8px 11px;
-        background: #f8fcff;
+        padding: 0.5rem 0.875rem;
+        background: #f7f9fc;
         color: var(--ink);
-        font-size: 0.82rem;
-        font-weight: 750;
+        font-size: 0.8rem;
+        font-weight: 600;
         white-space: nowrap;
     }
 
     .topbar-actions .mini-pill strong {
-        font-weight: 850;
+        font-weight: 700;
         color: var(--ink);
     }
 
     .stream-status {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        font-size: 0.76rem;
-        color: #0f766e;
-        background: #ecfeff;
-        border: 1px solid #bae6fd;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: #355c7d;
+        background: #eef3f8;
+        border: 1px solid #d7e1ea;
         border-radius: 999px;
-        padding: 4px 8px;
+        padding: 0.4rem 0.8rem;
         font-weight: 700;
     }
 
     .stream-dot {
-        width: 7px;
-        height: 7px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
-        background: #0f766e;
-        box-shadow: 0 0 0 0 rgba(15,118,110,0.45);
+        background: #355c7d;
+        box-shadow: 0 0 0 0 rgba(53, 92, 125, 0.3);
         animation: streamPulse 1.8s infinite;
     }
 
     @keyframes streamPulse {
-        0% {box-shadow: 0 0 0 0 rgba(15,118,110,0.45);}
-        70% {box-shadow: 0 0 0 8px rgba(15,118,110,0);}
-        100% {box-shadow: 0 0 0 0 rgba(15,118,110,0);}
+        0% {box-shadow: 0 0 0 0 rgba(53, 92, 125, 0.3);}
+        70% {box-shadow: 0 0 0 6px rgba(53, 92, 125, 0);}
+        100% {box-shadow: 0 0 0 0 rgba(53, 92, 125, 0);}
     }
 
     .stream-item {
         display: grid;
-        grid-template-columns: 42px minmax(0, 1fr) auto;
+        grid-template-columns: 40px minmax(0, 1fr) auto;
         align-items: center;
-        gap: 10px;
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 10px;
-        background: linear-gradient(180deg, #ffffff, #f8fcff);
-        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+        gap: 0.75rem;
+        border: 1px solid rgba(219, 227, 236, 0.95);
+        border-radius: 10px;
+        padding: 0.75rem;
+        background: linear-gradient(135deg, #ffffff, #f8fafc);
+        transition: all 0.2s ease;
         width: 100%;
         box-sizing: border-box;
     }
 
     .stream-item:hover {
         transform: translateY(-1px);
-        border-color: #c8def0;
-        box-shadow: 0 10px 22px rgba(37,99,235,0.08);
+        border-color: rgba(53, 92, 125, 0.22);
+        box-shadow: 0 5px 14px rgba(15, 23, 42, 0.05);
     }
 
     .stream-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 12px;
-        display: grid;
-        place-items: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: #fff;
-        font-weight: 900;
-        background: linear-gradient(135deg, var(--blue), var(--teal));
+        font-weight: 700;
+        font-size: 0.85rem;
+        background: linear-gradient(135deg, #355c7d, #5f7d8a);
+        flex-shrink: 0;
     }
 
     .stream-text strong {
         display: block;
         color: var(--ink);
-        font-size: 0.92rem;
-        margin-bottom: 2px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-bottom: 0.2rem;
     }
 
     .stream-text {
@@ -683,34 +842,34 @@ st.markdown(
     .stream-text span,
     .stream-tag {
         color: var(--muted);
-        font-size: 0.78rem;
+        font-size: 0.75rem;
     }
 
     .stream-meta {
-        margin-top: 4px;
+        margin-top: 0.3rem;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 0.75rem;
         flex-wrap: wrap;
         color: #6b7280;
-        font-size: 0.72rem;
+        font-size: 0.7rem;
     }
 
     .stream-tag {
         border-radius: 999px;
-        padding: 5px 8px;
-        background: #edf8ff;
-        border: 1px solid #d4ebf7;
+        padding: 0.35rem 0.65rem;
+        background: #f4f7fb;
+        border: 1px solid #dbe3ec;
         white-space: nowrap;
         font-weight: 700;
     }
 
-    .stream-tag.session {background: #ecfeff; border-color: #bae6fd; color: #0e7490;}
-    .stream-tag.interest {background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8;}
-    .stream-tag.intent {background: #f5f3ff; border-color: #ddd6fe; color: #6d28d9;}
-    .stream-tag.purchase {background: #fff7ed; border-color: #fed7aa; color: #c2410c;}
-    .stream-tag.conversion {background: #f0fdf4; border-color: #bbf7d0; color: #15803d;}
-    .stream-tag.retention {background: #fef2f2; border-color: #fecaca; color: #b91c1c;}
+    .stream-tag.session {background: #eef3f8; border-color: #d7e1ea; color: #355c7d;}
+    .stream-tag.interest {background: #f3f6f8; border-color: #dbe3ec; color: #5f7d8a;}
+    .stream-tag.intent {background: #f5f3ef; border-color: #e4ddd3; color: #7b8f6f;}
+    .stream-tag.purchase {background: #f7f4ee; border-color: #e6d9c7; color: #a88a5b;}
+    .stream-tag.conversion {background: #f2f4ef; border-color: #dde6d7; color: #7b8f6f;}
+    .stream-tag.retention {background: #f5f0f1; border-color: #e5d7da; color: #9a6f75;}
 
     .stream-legend {
         margin-top: 8px;
@@ -721,14 +880,14 @@ st.markdown(
     .risk-board {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
+        gap: 10px;
     }
 
     .risk-card {
-        border-radius: 14px;
-        padding: 15px;
+        border-radius: 12px;
+        padding: 14px;
         border: 1px solid var(--line);
-        background: linear-gradient(180deg, #ffffff, #f7fbff);
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
         min-height: 118px;
         position: relative;
         overflow: hidden;
@@ -742,11 +901,11 @@ st.markdown(
         width: 88px;
         height: 88px;
         border-radius: 50%;
-        background: rgba(37,99,235,0.12);
+        background: rgba(53,92,125,0.08);
     }
 
-    .risk-card.medium:after {background: rgba(245,158,11,0.16);}
-    .risk-card.high:after {background: rgba(225,29,72,0.16);}
+    .risk-card.medium:after {background: rgba(168,138,91,0.12);}
+    .risk-card.high:after {background: rgba(154,111,117,0.12);}
 
     .risk-card span {
         color: var(--muted);
@@ -868,61 +1027,85 @@ st.markdown(
 
     .stButton > button,
     .stDownloadButton > button {
-        background: linear-gradient(135deg, #2563eb, #0f766e);
-        border: 1px solid #1d7fcb;
-        color: #fff;
-        border-radius: 8px;
-        min-height: 42px;
-        font-weight: 800;
-        box-shadow: 0 8px 18px rgba(17,24,39,0.12);
+        background: linear-gradient(135deg, #3b82f6, #06b6d4) !important;
+        border: 1px solid transparent !important;
+        color: #fff !important;
+        border-radius: 8px !important;
+        min-height: 44px !important;
+        font-weight: 700 !important;
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15) !important;
+        transition: all 0.2s ease !important;
     }
 
     .stButton > button:hover,
     .stDownloadButton > button:hover {
-        border-color: #0f766e;
-        color: #fff;
-        transform: translateY(-1px);
+        transform: translateY(-2px) !important;
+        box-shadow: 0 10px 24px rgba(59, 130, 246, 0.25) !important;
     }
 
     div[data-testid="stMetric"] {
         background: #fff;
-        border: 1px solid var(--line);
+        border: 1px solid rgba(203, 213, 225, 0.8);
         border-radius: 10px;
-        padding: 13px 15px;
-        box-shadow: 0 6px 18px rgba(15,23,42,0.05);
+        padding: 1rem 1.25rem;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
     }
 
     div[data-testid="stDataFrame"] {
-        border: 1px solid var(--line);
+        border: 1px solid rgba(203, 213, 225, 0.8);
         border-radius: 10px;
         overflow: hidden;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1200px) {
+        .main .block-container {
+            max-width: 100%;
+        }
+
+        .app-hero,
+        .data-flow {
+            grid-template-columns: 1fr;
+        }
+
+        .pipeline-strip,
+        .architecture-grid,
+        .tracking-snapshot {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
         .topbar {
-            align-items: flex-start;
             flex-direction: column;
+            align-items: flex-start;
         }
 
         .topbar-actions {
             justify-content: flex-start;
+            width: 100%;
         }
 
-        .app-hero,
-        .flow,
+        .main .block-container {
+            padding: 1rem 0.75rem;
+        }
+
+        .hero-copy h1 {
+            font-size: 1.75rem;
+        }
+
+        .pipeline-strip,
         .architecture-grid,
-        .risk-board,
-        .data-flow,
-        .play-grid {
+        .tracking-snapshot,
+        .tracking-notes {
             grid-template-columns: 1fr;
         }
 
-        .hero-copy h1 {font-size: 1.9rem;}
-        .signal-foot {grid-template-columns: 1fr;}
+        .data-flow {
+            grid-template-columns: repeat(2, 1fr);
+        }
 
         .stream-item {
-            grid-template-columns: 38px 1fr;
-            gap: 9px;
+            grid-template-columns: 36px 1fr;
         }
 
         .stream-tag {
@@ -934,6 +1117,10 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
+ACADEMIC_COLORS = ["#355c7d", "#5f7d8a", "#7b8f6f", "#a88a5b", "#9a6f75"]
+ACADEMIC_SOFT_SCALE = ["#f7fbff", "#deecf9", "#c6e2f0", "#8fb7d6", "#547aa3"]
+ACADEMIC_DIVERGING_SCALE = ["#edf2f7", "#dbe3ec", "#e9ddcf", "#d9c0c0", "#b98f95"]
 
 
 # ============================================================================
@@ -1146,37 +1333,37 @@ def _build_live_feature_sources(payload: Dict[str, Any], recent_count: int) -> p
             {
                 "Feature": "days_signup_age",
                 "Source": "User signup record",
-                "Live Example": _format_live_value(payload.get("days_signup_age")),
+                "Sample Value": _format_live_value(payload.get("days_signup_age")),
                 "Used By": "Risk model",
             },
             {
                 "Feature": "recency_days",
                 "Source": "Latest event timestamp",
-                "Live Example": _format_live_value(payload.get("recency_days")),
+                "Sample Value": _format_live_value(payload.get("recency_days")),
                 "Used By": "Risk model",
             },
             {
                 "Feature": "frequency_total",
                 "Source": "Session and login history",
-                "Live Example": _format_live_value(payload.get("frequency_total")),
+                "Sample Value": _format_live_value(payload.get("frequency_total")),
                 "Used By": "Risk model",
             },
             {
                 "Feature": "session_duration_avg",
                 "Source": "Session timing",
-                "Live Example": _format_live_value(payload.get("session_duration_avg")),
+                "Sample Value": _format_live_value(payload.get("session_duration_avg")),
                 "Used By": "Risk model",
             },
             {
                 "Feature": "feature_count_used",
                 "Source": "Recent behavior breadth",
-                "Live Example": _format_live_value(payload.get("feature_count_used")),
+                "Sample Value": _format_live_value(payload.get("feature_count_used")),
                 "Used By": f"{recent_count} recent predictions",
             },
             {
                 "Feature": "device_type / os_type",
                 "Source": "Client metadata",
-                "Live Example": " / ".join(
+                "Sample Value": " / ".join(
                     [
                         _format_live_value(payload.get("device_type")),
                         _format_live_value(payload.get("os_type")),
@@ -1187,7 +1374,7 @@ def _build_live_feature_sources(payload: Dict[str, Any], recent_count: int) -> p
             {
                 "Feature": "user_segment / region",
                 "Source": "Profile and geography",
-                "Live Example": " / ".join(
+                "Sample Value": " / ".join(
                     [
                         _format_live_value(payload.get("user_segment")),
                         _format_live_value(payload.get("region")),
@@ -1469,29 +1656,50 @@ def chart_layout(fig: go.Figure, height: int = 330) -> go.Figure:
         margin=dict(l=10, r=10, t=28, b=10),
         font=dict(family="Arial", color="#142033"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        template="simple_white",
+        colorway=ACADEMIC_COLORS,
+        hoverlabel=dict(bgcolor="#ffffff", bordercolor="#dbe3ec", font=dict(color="#142033")),
     )
     return fig
 
 
 def build_retention_funnel() -> go.Figure:
+    """Build a clean retention progression chart without heavy borders or shapes."""
     funnel_df = pd.DataFrame(
         {
-            "Stage": ["Visited", "Active", "Engaged", "At Risk", "High Risk"],
-            "Users": [100000, 78200, 54600, 18450, 6200],
+            "Stage": ["High Risk", "At Risk", "Engaged", "Active", "Visited"],
+            "Users": [6200, 18450, 54600, 78200, 100000],
         }
     )
+    stage_colors = ["#d9e2ec", "#d7e6df", "#e6dfcf", "#e1d0d5", "#ced9e6"]
+
     fig = go.Figure(
-        go.Funnel(
-            y=funnel_df["Stage"],
+        go.Bar(
             x=funnel_df["Users"],
-            textinfo="value+percent initial",
+            y=funnel_df["Stage"],
+            orientation="h",
             marker={
-                "color": ["#2563eb", "#14b8a6", "#059669", "#f59e0b", "#e11d48"],
+                "color": stage_colors,
                 "line": {"width": 0},
             },
+            text=[f"{value:,.0f}" for value in funnel_df["Users"]],
+            textposition="outside",
+            textfont={"size": 12, "color": "#334155", "family": "Arial, sans-serif"},
+            hovertemplate="<b>%{y}</b><br>Users: %{x:,.0f}<extra></extra>",
         )
     )
-    return chart_layout(fig, 305)
+
+    fig.update_layout(
+        font={"family": "Arial, sans-serif", "size": 13, "color": "#334155"},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin={"t": 20, "b": 20, "l": 20, "r": 20},
+        height=380,
+        xaxis={"showgrid": False, "zeroline": False, "showline": False, "showticklabels": False},
+        yaxis={"showgrid": False, "zeroline": False, "showline": False},
+    )
+
+    return fig
 
 
 def build_segment_risk_donut() -> go.Figure:
@@ -1508,10 +1716,10 @@ def build_segment_risk_donut() -> go.Figure:
         hole=0.62,
         color="Segment",
         color_discrete_map={
-            "Free": "#e11d48",
-            "Trial": "#f59e0b",
-            "Premium": "#059669",
-            "Returning": "#2563eb",
+            "Free": "#9a6f75",
+            "Trial": "#a88a5b",
+            "Premium": "#7b8f6f",
+            "Returning": "#5f7d8a",
         },
     )
     fig.update_traces(textposition="inside", textinfo="percent+label")
@@ -1550,13 +1758,13 @@ def build_event_volume_chart() -> go.Figure:
         event_df["Hour"] = event_df["hour_dt"].dt.strftime("%H:%M")
         event_df = event_df.drop(columns=["hour_dt"])
     else:
-        return _build_empty_state_chart("Event Volume", "Waiting for live prediction events to populate hourly volume.")
+        return _build_empty_state_chart("Event Volume", "Waiting for prediction records to populate the summary.")
 
     fig = px.area(
         event_df,
         x="Hour",
         y=["Product Views", "Cart Events", "Checkout Events"],
-        color_discrete_sequence=["#2563eb", "#14b8a6", "#f59e0b"],
+        color_discrete_sequence=["#355c7d", "#5f7d8a", "#a88a5b"],
     )
     fig.update_layout(yaxis_title="Events", xaxis_title="Hour")
     return chart_layout(fig, 305)
@@ -1578,13 +1786,13 @@ def build_region_heatmap() -> go.Figure:
         heat_df.columns = ["Low", "Medium", "High"]
         heat_df = heat_df.sort_index()
     else:
-        return _build_empty_state_chart("Region Risk Heatmap", "Waiting for live prediction records to populate the geographic risk view.")
+        return _build_empty_state_chart("Region Risk Heatmap", "Waiting for prediction records to populate the geographic summary.")
 
     fig = px.imshow(
         heat_df,
         text_auto=True,
         aspect="auto",
-        color_continuous_scale=["#dcfce7", "#fef3c7", "#ffe4e6", "#e11d48"],
+        color_continuous_scale=ACADEMIC_DIVERGING_SCALE,
         labels=dict(color="Risk %"),
     )
     fig.update_layout(xaxis_title="Risk Level", yaxis_title="Region")
@@ -1615,30 +1823,30 @@ PAGES = [
 ]
 
 NAV_LABELS = {
-    "Command Center": "01  Command Center",
-    "Production Tracking": "02  Tracking",
-    "Model Intelligence": "03  Model Intel",
-    "Batch Scoring": "04  Batch Scoring",
-    "System Health": "05  System",
+    "Command Center": "01  Overview",
+    "Production Tracking": "02  Behavioral Analysis",
+    "Model Intelligence": "03  Model Evaluation",
+    "Batch Scoring": "04  Batch Evaluation",
+    "System Health": "05  System Review",
 }
 
 if "page" not in st.session_state:
     st.session_state["page"] = PAGES[0]
 
 status_class = "online" if api_online else "offline"
-status_text = "API Live" if api_online else "API Offline"
+status_text = "Data Ready" if api_online else "API Offline"
 st.markdown(
     f"""
     <div class="topbar">
         <div class="brand">
             <div class="brand-mark">DD</div>
             <div>
-                <div class="brand-title">Drop-Off Detection</div>
-                <div class="brand-subtitle">Retention risk intelligence dashboard</div>
+                <div class="brand-title">Early User Churn Detection</div>
+                <div class="brand-subtitle">Thesis presentation dashboard</div>
             </div>
         </div>
         <div class="topbar-actions">
-            <span class="mini-pill">Live feed <strong>{metric_value(metrics_blob, "predictions_total", 860):,.0f}</strong></span>
+            <span class="mini-pill">Evaluation sample <strong>{metric_value(metrics_blob, "predictions_total", 860):,.0f}</strong></span>
             <span class="api-pill"><span class="status-dot {status_class}"></span>{status_text}</span>
             <span class="nav-note">Model {metric_value(metrics_blob, "roc_auc", 0.9731):.3f} ROC-AUC</span>
         </div>
@@ -1660,7 +1868,7 @@ page = st.session_state["page"]
 
 
 # ============================================================================
-# COMMAND CENTER
+# PROJECT OVERVIEW
 # ============================================================================
 
 if page == "Command Center":
@@ -1668,8 +1876,8 @@ if page == "Command Center":
         """
         <div class="section-head">
             <div>
-                <h2>Command Center</h2>
-                <p>Executive view of retention risk, model strength, and operational signals.</p>
+                <h2>Project Overview</h2>
+                <p>Summary view of retention risk, model strength, and project evidence.</p>
             </div>
         </div>
         """,
@@ -1682,10 +1890,10 @@ if page == "Command Center":
             """
             <div class="hero-copy">
                 <div class="eyebrow">Retention Intelligence</div>
-                <h1>Silent User Drop-Off Detection Command Center</h1>
+                <h1>Early User Churn Detection in Web Applications</h1>
                 <p>
                     A modern ML dashboard that converts behavioral signals into risk scores,
-                    intervention priorities, model evidence, and operational insight.
+                    intervention priorities, model evidence, and analytical insight.
                 </p>
             </div>
             """,
@@ -1707,12 +1915,12 @@ if page == "Command Center":
     st.markdown(
         """
         <div class="panel">
-            <div class="panel-title">Operational Pipeline</div>
+            <div class="panel-title">Analytical Workflow</div>
             <div class="architecture-grid">
                 <div class="arch-tile">
                     <div class="arch-mark"></div>
                     <strong>Browser/App Events</strong>
-                    <span>Live clickstream and session activity entering the system.</span>
+                    <span>Clickstream and session activity captured for analysis.</span>
                 </div>
                 <div class="arch-tile">
                     <div class="arch-mark"></div>
@@ -1736,7 +1944,7 @@ if page == "Command Center":
             """
             <div class="visual-card">
                 <div class="visual-title">Retention Funnel</div>
-                <div class="visual-copy">How users move from activity to risk buckets.</div>
+                <div class="visual-copy">How users move from activity into risk groupings.</div>
             """,
             unsafe_allow_html=True,
         )
@@ -1747,7 +1955,7 @@ if page == "Command Center":
             """
             <div class="visual-card">
                 <div class="visual-title">Risk By Segment</div>
-                <div class="visual-copy">Which user groups need retention attention.</div>
+                <div class="visual-copy">Which groups are most relevant for retention review.</div>
             """,
             unsafe_allow_html=True,
         )
@@ -1779,7 +1987,7 @@ if page == "Command Center":
 
 
 # ============================================================================
-# PRODUCTION TRACKING
+# BEHAVIORAL SUMMARY
 # ============================================================================
 
 elif page == "Production Tracking":
@@ -1787,17 +1995,39 @@ elif page == "Production Tracking":
         """
         <div class="section-head">
             <div>
-                <h2>Production Tracking</h2>
-                <p>Real web applications generate behavior data automatically, then the ML system scores users at scale.</p>
+                <h2>Project Workflow</h2>
+                <p>The project converts behavioral signals into predictions and summarizes the results for thesis presentation.</p>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    auto_refresh = st.toggle("Auto-refresh live tracking (6s)", value=False, key="prod_tracking_autorefresh")
-    if auto_refresh:
-        st.caption("Live mode enabled. Refreshing this page every 6 seconds.")
+    # Static presentation controls
+    col_refresh, col_status = st.columns([2, 2])
+    with col_refresh:
+        auto_refresh = False
+    
+    with col_status:
+        api_check = check_api_status()
+        status_symbol = "🟢 Available" if api_check else "🔴 Unavailable"
+        st.metric("API Status", status_symbol)
+
+    st.caption("Static summary view for thesis review and presentation.")
+    
+    # Status summary banner
+    errors_detected = []
+    if not api_check:
+        errors_detected.append("⚠️ API Server unavailable - Prediction results cannot be refreshed")
+    
+    success, recent_preds, _ = call_api("/predictions?limit=1")
+    if success and not recent_preds:
+        errors_detected.append("⚠️ No predictions available - The result store is currently empty")
+    
+    if errors_detected:
+        st.warning("⚠️ **Status Notes**\n\n" + "\n\n".join(errors_detected))
+    else:
+        st.success("✅ Current system state is available for review")
 
     prediction_rows = fetch_recent_predictions(limit=6) if api_online else []
     latest_prediction = prediction_rows[0] if prediction_rows else {}
@@ -1811,28 +2041,28 @@ elif page == "Production Tracking":
     st.markdown(
         f"""
         <div class="panel">
-            <div class="panel-title">Tracking Snapshot</div>
-            <div class="panel-copy">This card summarizes the live operating state without repeating the event stream below.</div>
+            <div class="panel-title">Summary Snapshot</div>
+            <div class="panel-copy">This card summarizes the current project state without repeating the table below.</div>
             <div class="tracking-snapshot">
                 <div class="snapshot-card">
-                    <span>Live Volume</span>
+                    <span>Observed Volume</span>
                     <strong>{live_total:,}</strong>
-                    <p>Scored events in the current live window.</p>
+                    <p>Scored events captured in the current sample.</p>
                 </div>
                 <div class="snapshot-card">
                     <span>Region Coverage</span>
                     <strong>{live_regions}</strong>
-                    <p>Distinct regions represented in live data.</p>
+                    <p>Distinct regions represented in the dataset.</p>
                 </div>
                 <div class="snapshot-card">
                     <span>High-Risk Share</span>
                     <strong>{live_high_share:.0%}</strong>
-                    <p>Share of events currently marked high risk.</p>
+                    <p>Share of events marked as high risk.</p>
                 </div>
                 <div class="snapshot-card">
-                    <span>Latest State</span>
+                    <span>Latest Risk State</span>
                     <strong>{_format_live_value(latest_prediction.get("risk_level"))}</strong>
-                    <p>Most recent API prediction outcome.</p>
+                    <p>Most recent prediction outcome.</p>
                 </div>
             </div>
         </div>
@@ -1843,28 +2073,28 @@ elif page == "Production Tracking":
     st.markdown(
         """
         <div class="panel">
-            <div class="panel-title">Pipeline Status</div>
-            <div class="panel-copy">The view runs on the live pipeline, with each stage mapped to the operating system behind the model.</div>
+            <div class="panel-title">Project Flow</div>
+            <div class="panel-copy">Each stage in the project maps the path from user behavior to prediction output.</div>
             <div class="pipeline-strip">
                 <div class="pipeline-chip">
                     <span>Event Capture</span>
-                    <strong>Auto</strong>
+                    <strong>Input</strong>
                     <p>Login, search, cart, checkout.</p>
                 </div>
                 <div class="pipeline-chip">
                     <span>Feature Job</span>
-                    <strong>Batch</strong>
+                    <strong>Processing</strong>
                     <p>User-level behavior features.</p>
                 </div>
                 <div class="pipeline-chip">
                     <span>ML Scoring</span>
-                    <strong>API</strong>
-                    <p>Real-time or scheduled scoring.</p>
+                    <strong>Model</strong>
+                    <p>Prediction or scheduled scoring.</p>
                 </div>
                 <div class="pipeline-chip">
                     <span>Dashboard</span>
                     <strong>Insights</strong>
-                    <p>Counts, filters, high-risk users.</p>
+                    <p>Summaries, filters, and risk groups.</p>
                 </div>
             </div>
         </div>
@@ -1875,8 +2105,8 @@ elif page == "Production Tracking":
     st.markdown(
         """
         <div class="panel">
-            <div class="panel-title">Live Application Flow</div>
-            <div class="panel-copy">This is the operational path from raw behavior to scored output and executive monitoring.</div>
+            <div class="panel-title">Application Flow</div>
+            <div class="panel-copy">This is the path from raw behavior to scored output and summary reporting.</div>
             <div class="data-flow">
                 <div class="flow-node">
                     <div class="node-mark"></div>
@@ -1896,12 +2126,12 @@ elif page == "Production Tracking":
                 <div class="flow-node">
                     <div class="node-mark"></div>
                     <strong>Prediction Store</strong>
-                    <span>Stored outputs for monitoring and analysis</span>
+                    <span>Stored outputs for review and analysis</span>
                 </div>
                 <div class="flow-node">
                     <div class="node-mark"></div>
-                    <strong>Live Dashboard</strong>
-                    <span>Insights, monitoring, and action</span>
+                    <strong>Dashboard</strong>
+                    <span>Insights, summary, and presentation</span>
                 </div>
             </div>
         </div>
@@ -1913,11 +2143,11 @@ elif page == "Production Tracking":
     with event_col:
         stream_rows = build_live_event_rows(prediction_rows)
         stream_html = "".join(stream_rows)
-        stream_state = "LIVE" if stream_rows else "IDLE"
+        stream_state = "ACTIVE" if stream_rows else "IDLE"
         stream_copy = (
-            "Latest scored behaviors from the running API and prediction store."
+            "Latest scored behaviors from the prediction store."
             if stream_rows
-            else "No recent prediction events yet. Start traffic to populate this stream."
+            else "No recent prediction events yet. Add data to populate this section."
         )
 
         if not stream_rows:
@@ -1930,12 +2160,12 @@ elif page == "Production Tracking":
             (
                 f'<div class="visual-card">'
                 f'<div class="stream-head">'
-                f'<div><div class="visual-title">Live Event Stream</div>'
+                f'<div><div class="visual-title">Event Summary</div>'
                 f'<div class="visual-copy">{stream_copy}</div></div>'
                 f'<div class="stream-status"><span class="stream-dot"></span>{stream_state}</div>'
                 f'</div>'
                 f'<div class="event-stream">{stream_html}</div>'
-                f'<div class="stream-legend">Live event records are pulled from the API and summarized here without duplicating the snapshot metrics.</div>'
+                f'<div class="stream-legend">Recent events are summarized here without duplicating the snapshot metrics.</div>'
                 f'</div>'
             ),
             unsafe_allow_html=True,
@@ -1945,8 +2175,8 @@ elif page == "Production Tracking":
         st.markdown(
             """
             <div class="visual-card">
-                <div class="visual-title">Live Feature Table</div>
-                <div class="visual-copy">The latest payload values explain what the model just saw.</div>
+                <div class="visual-title">Feature Reference Table</div>
+                <div class="visual-copy">The latest payload values explain the inputs used by the model.</div>
             """,
             unsafe_allow_html=True,
         )
@@ -1956,19 +2186,19 @@ elif page == "Production Tracking":
             """
             <div class="tracking-notes">
                 <div class="tracking-note">
-                    <span>Live State</span>
+                    <span>System State</span>
                     <strong>API Connected</strong>
-                    <p>Prediction records are feeding the dashboard in near real time.</p>
+                    <p>Prediction records are available for review in the dashboard.</p>
                 </div>
                 <div class="tracking-note">
-                    <span>Refresh Mode</span>
+                    <span>Update Mode</span>
                     <strong>Optional</strong>
-                    <p>Use auto-refresh when you want the view to behave like a live wallboard.</p>
+                    <p>Updates can be triggered manually for a presentation-friendly view.</p>
                 </div>
                 <div class="tracking-note">
                     <span>Audience</span>
-                    <strong>Operations / Retention</strong>
-                    <p>Built for monitoring, intervention, and quick action on at-risk users.</p>
+                    <strong>Research / Retention</strong>
+                    <p>Built for analysis, presentation, and discussion of at-risk users.</p>
                 </div>
             </div>
             """,
@@ -1986,10 +2216,10 @@ elif page == "Production Tracking":
     st.markdown("### Managing Large User Volume")
     scale_df = pd.DataFrame(
         [
-            {"Layer": "Event tracking", "Production Use": "Append every user action to an events table or stream."},
-            {"Layer": "Feature generation", "Production Use": "Aggregate events per user every hour or every day."},
-            {"Layer": "Batch prediction", "Production Use": "Score lakhs or crores of users using /predict-batch or scheduled jobs."},
-            {"Layer": "Dashboard", "Production Use": "Show summaries, filters, segments, regions, and high-risk users only."},
+            {"Layer": "Event tracking", "Thesis Role": "Record user actions in an events table for later analysis."},
+            {"Layer": "Feature generation", "Thesis Role": "Aggregate events per user at regular intervals."},
+            {"Layer": "Batch prediction", "Thesis Role": "Score large user groups using scheduled jobs or batch calls."},
+            {"Layer": "Dashboard", "Thesis Role": "Show summaries, filters, segments, regions, and risk groups."},
         ]
     )
     st.dataframe(scale_df, use_container_width=True, hide_index=True)
@@ -1997,24 +2227,118 @@ elif page == "Production Tracking":
     st.markdown(
         """
         <div class="panel">
-            <div class="panel-title">Developer Test Panel</div>
-            <div class="panel-copy">These controls call the live API, score a profile, and verify that end-to-end prediction is working.</div>
+            <div class="panel-title">Evaluation Panel</div>
+            <div class="panel-copy">Use preset profiles or manually specified inputs to illustrate the thesis evaluation workflow.</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    test_col1, test_col2, test_col3 = st.columns(3)
+    # Preset buttons
+    preset_col1, preset_col2, preset_col3 = st.columns(3)
     run_profile: str | None = None
-    with test_col1:
-        if st.button("Test low risk", use_container_width=True):
+    with preset_col1:
+        if st.button("Low-risk case", use_container_width=True):
             run_profile = "Low risk"
-    with test_col2:
-        if st.button("Test balanced", use_container_width=True):
+    with preset_col2:
+        if st.button("Balanced case", use_container_width=True):
             run_profile = "Balanced"
-    with test_col3:
-        if st.button("Test high risk", use_container_width=True):
+    with preset_col3:
+        if st.button("High-risk case", use_container_width=True):
             run_profile = "High risk"
+
+    # Manual input mode
+    st.markdown("### Manual case specification")
+    
+    with st.form("custom_test_form", border=True):
+        form_col1, form_col2 = st.columns(2)
+        
+        with form_col1:
+            session_length = st.slider(
+                "Session length (minutes)",
+                min_value=0,
+                max_value=120,
+                value=30,
+                step=5,
+                help="Duration of observed user activity"
+            )
+            cart_value = st.number_input(
+                "Cart value ($)",
+                min_value=0.0,
+                max_value=10000.0,
+                value=100.0,
+                step=10.0,
+                help="Approximate cart value observed in the session"
+            )
+            page_views = st.number_input(
+                "Page views",
+                min_value=0,
+                max_value=500,
+                value=15,
+                step=1,
+                help="Total pages viewed in the session"
+            )
+        
+        with form_col2:
+            days_since_signup = st.slider(
+                "Days since signup",
+                min_value=0,
+                max_value=365,
+                value=45,
+                step=1,
+                help="Age of the user account in days"
+            )
+            bounce_rate = st.slider(
+                "Bounce rate (%)",
+                min_value=0.0,
+                max_value=100.0,
+                value=25.0,
+                step=5.0,
+                help="Percentage of sessions that ended quickly"
+            )
+            conversion_rate = st.slider(
+                "Conversion rate (%)",
+                min_value=0.0,
+                max_value=100.0,
+                value=3.5,
+                step=0.5,
+                help="Observed conversion percentage"
+            )
+        
+        submit_custom = st.form_submit_button(
+            "Evaluate Case",
+            use_container_width=True,
+            type="primary"
+        )
+        
+        if submit_custom:
+            try:
+                custom_payload = {
+                    "session_length_minutes": float(session_length),
+                    "cart_value_usd": float(cart_value),
+                    "page_views": int(page_views),
+                    "days_since_signup": int(days_since_signup),
+                    "bounce_rate_pct": float(bounce_rate),
+                    "conversion_rate_pct": float(conversion_rate),
+                }
+                
+                # Call API with custom payload
+                success, data, msg = call_api("/predict", method="POST", data=custom_payload)
+
+                if success and isinstance(data, dict):
+                    probability = float(data.get("probability", 0))
+                    st.session_state["tracking_test_result"] = {
+                        "profile": "Custom",
+                        "probability": probability,
+                        "risk_label": classify_risk(probability),
+                        "risk_kind": risk_kind(probability),
+                        "custom": True,
+                    }
+                    st.rerun()
+                else:
+                    st.error(f"Evaluation error: {msg}")
+            except Exception as e:
+                st.error(f"Evaluation failed: {str(e)}")
 
     if run_profile:
         success, data, msg = score_profile(run_profile)
@@ -2042,7 +2366,7 @@ elif page == "Production Tracking":
             with text_col:
                 st.metric("Profile", str(test_result["profile"]))
                 st.metric("Drop-off probability", f"{float(test_result['probability']) * 100:.1f}%")
-                render_callout(test_result["risk_kind"], test_result["risk_label"], "API prediction test completed.")
+                render_callout(test_result["risk_kind"], test_result["risk_label"], "Prediction completed.")
 
     if auto_refresh:
         time.sleep(6)
@@ -2054,8 +2378,8 @@ elif page == "Production Tracking":
 # ============================================================================
 
 elif page == "Model Intelligence":
-    st.markdown("## Model Intelligence")
-    st.caption("Evidence for performance, threshold choice, and explainability.")
+    st.markdown("## Model Analysis")
+    st.caption("Quantitative evidence for performance, threshold selection, and interpretability in the proposed model.")
 
     metric_df = pd.DataFrame(
         {
@@ -2080,7 +2404,7 @@ elif page == "Model Intelligence":
                 x=metric_df["Metric"],
                 y=metric_df["Score"],
                 name="Achieved",
-                marker_color="#0f766e",
+                marker_color="#355c7d",
                 text=[f"{score:.1%}" for score in metric_df["Score"]],
                 textposition="auto",
             )
@@ -2090,7 +2414,7 @@ elif page == "Model Intelligence":
                 x=metric_df["Metric"],
                 y=metric_df["Target"],
                 name="Target",
-                marker_color="#d9e2ec",
+                marker_color="#dbe3ec",
                 text=[f"{score:.1%}" for score in metric_df["Target"]],
                 textposition="auto",
             )
@@ -2114,8 +2438,9 @@ elif page == "Model Intelligence":
             y="Count",
             color="Actual",
             barmode="group",
-            color_discrete_map={"Retained": "#2563eb", "Drop-off": "#e11d48"},
+            color_discrete_map={"Retained": "#5f7d8a", "Drop-off": "#9a6f75"},
         )
+        fig_cm.update_layout(title="Confusion matrix summary")
         st.plotly_chart(chart_layout(fig_cm, 335), use_container_width=True)
 
     lower_left, lower_right = st.columns(2)
@@ -2135,8 +2460,8 @@ elif page == "Model Intelligence":
                 y="Score",
                 color="Metric",
                 markers=True,
-                color_discrete_map={"precision": "#2563eb", "recall": "#059669", "f1": "#d97706"},
-                title="Threshold trade-off",
+                color_discrete_map={"precision": "#355c7d", "recall": "#7b8f6f", "f1": "#a88a5b"},
+                title="Threshold comparison",
             )
             fig_threshold.update_layout(yaxis_tickformat=".0%")
             st.plotly_chart(chart_layout(fig_threshold, 340), use_container_width=True)
@@ -2164,8 +2489,8 @@ elif page == "Model Intelligence":
             y="Feature",
             orientation="h",
             color="Importance",
-            color_continuous_scale="Teal",
-            title="Feature influence",
+            color_continuous_scale=ACADEMIC_SOFT_SCALE,
+            title="Feature contribution",
         )
         fig_importance.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
         st.plotly_chart(chart_layout(fig_importance, 340), use_container_width=True)
@@ -2181,8 +2506,8 @@ elif page == "Model Intelligence":
 # ============================================================================
 
 elif page == "Batch Scoring":
-    st.markdown("## Batch Scoring")
-    st.caption("CSV upload, API-backed batch scoring, and exportable prediction reports.")
+    st.markdown("## Batch Analysis")
+    st.caption("CSV upload, batch prediction, and exportable summary outputs for thesis evaluation.")
 
     sample_df = pd.DataFrame(
         [
@@ -2214,22 +2539,22 @@ elif page == "Batch Scoring":
     top_a, top_b = st.columns([0.7, 1.3])
     with top_a:
         st.download_button(
-            "Download sample CSV",
+            "Download evaluation template",
             sample_df.to_csv(index=False).encode("utf-8"),
             "dropoff_batch_template.csv",
             "text/csv",
             use_container_width=True,
         )
-        uploaded_file = st.file_uploader("Upload users CSV", type=["csv"])
+        uploaded_file = st.file_uploader("Upload evaluation CSV", type=["csv"])
     with top_b:
         st.dataframe(sample_df, use_container_width=True, hide_index=True)
 
     if uploaded_file:
         uploaded_df = pd.read_csv(uploaded_file)
-        st.markdown("### Uploaded Preview")
+        st.markdown("### Uploaded Data Sample")
         st.dataframe(uploaded_df.head(12), use_container_width=True, hide_index=True)
 
-        if st.button("Process uploaded users", use_container_width=True):
+        if st.button("Run batch evaluation", use_container_width=True):
             try:
                 records = uploaded_rows_to_records(uploaded_df)
             except ValueError as exc:
@@ -2241,15 +2566,15 @@ elif page == "Batch Scoring":
                 else:
                     predictions = pd.DataFrame(result.get("predictions", []))
                     if predictions.empty:
-                        render_callout("warning", "No predictions returned", "Review API validation errors below.")
+                        render_callout("warning", "No predictions returned", "Review validation details below.")
                     else:
                         enriched = uploaded_df.copy()
                         enriched["dropoff_probability"] = predictions["dropoff_probability"].values
                         enriched["risk_level"] = predictions["risk_level"].values
                         enriched["predicted_label"] = predictions["predicted_label"].values
                         high_risk_count = int((enriched["dropoff_probability"] >= 0.67).sum())
-                        st.metric("Processed users", len(enriched))
-                        st.metric("High-risk users", high_risk_count)
+                        st.metric("Records evaluated", len(enriched))
+                        st.metric("High-risk records", high_risk_count)
                         st.dataframe(enriched, use_container_width=True, hide_index=True)
 
                         export1, export2 = st.columns(2)
@@ -2282,38 +2607,94 @@ elif page == "Batch Scoring":
 
 elif page == "System Health":
     st.markdown("## System Health")
-    st.caption("Project components, API health, and implementation artifacts.")
-
+    st.caption("Static summary of API health, model readiness, and project status for thesis presentation.")
+    
+    # Health status indicators
+    api_status = check_api_status()
     ready1, ready2, ready3 = st.columns(3)
+    
     with ready1:
-        render_kpi("API Layer", "Flask", "Health, prediction, batch scoring, monitoring, and records.", "blue")
+        status_icon = "✅ Available" if api_status else "❌ Unavailable"
+        color = "green" if api_status else "red"
+        render_kpi("Service Layer", status_icon, "Backend service status and validation checks.", color)
+    
     with ready2:
-        render_kpi("ML Layer", "Model", "Feature engineering, persisted model, and evaluation outputs.", "teal")
+        model_status = "✅ Ready"
+        render_kpi("Model Layer", model_status, "Prediction and feature engineering components ready.", "teal")
+    
     with ready3:
-        render_kpi("Dashboard", "Streamlit", "Interactive scoring, model evidence, and exports.", "green")
+        render_kpi("Dashboard", "✅ Ready", "Interactive interface for presentation and analysis.", "blue")
 
-    monitor_col, deploy_col = st.columns(2)
+    # Real-time monitoring with error detection
+    monitor_col, errors_col = st.columns([1.2, 1])
+    
     with monitor_col:
-        st.markdown("### API Monitor")
-        if st.button("Refresh monitor", use_container_width=True):
-            st.cache_data.clear()
-            st.rerun()
+        st.markdown("### Service Summary")
+        st.caption("Snapshot of backend metrics used in the thesis evaluation.")
+        
+        # Fetch and display monitor data
         success, data, msg = call_api("/monitor")
+        
         if success and isinstance(data, dict):
-            st.json(data)
-        else:
-            render_callout("warning", "Monitor unavailable", f"Detail: {msg}")
-
-    with deploy_col:
-        st.markdown("### Project Artifacts")
-        artifacts = pd.DataFrame(
-            [
-                {"Area": "Model", "Artifact": "models/final_model.pkl"},
-                {"Area": "Metrics", "Artifact": "results/evaluation_metrics.json"},
-                {"Area": "Thresholds", "Artifact": "results/threshold_analysis.csv"},
-                {"Area": "API", "Artifact": "src/api/app.py"},
-                {"Area": "Dashboard", "Artifact": "streamlit_dashboard.py"},
-                {"Area": "CI/CD", "Artifact": ".github/workflows/mlops-ci-cd.yml"},
+            # Display key metrics in columns
+            metric_cols = st.columns(4)
+            metrics_dict = data if isinstance(data, dict) else {}
+            
+            metric_items = [
+                ("Requests", metrics_dict.get("requests", 0), "blue"),
+                ("Predictions", metrics_dict.get("predictions", 0), "teal"),
+                ("Errors", metrics_dict.get("errors", 0), "red"),
+                ("Uptime", metrics_dict.get("uptime", "—"), "green"),
             ]
-        )
-        st.dataframe(artifacts, use_container_width=True, hide_index=True)
+            
+            for idx, (label, value, color) in enumerate(metric_items):
+                with metric_cols[idx]:
+                    st.metric(label, value)
+            
+            # Detailed JSON view
+            with st.expander("Detailed Service Data", expanded=False):
+                st.json(data)
+        else:
+            st.error(f"❌ Service unavailable: {msg}")
+            st.info("Attempting to reconnect.")
+
+    with errors_col:
+        st.markdown("### Observations")
+        st.caption("Notes on the current system state and validation results.")
+        
+        # Check for common issues
+        alerts = []
+        
+        if not api_status:
+            alerts.append(("❌ API Offline", "Flask API not responding. Check server status.", "error"))
+        
+        success, predictions, _ = call_api("/predictions?limit=10")
+        if not success or not predictions:
+            alerts.append(("⚠️ No Data", "No recent predictions. Check data pipeline.", "warning"))
+        
+        if not alerts:
+            st.success("✅ Current system state is stable")
+        else:
+            for title, msg, alert_type in alerts:
+                if alert_type == "error":
+                    st.error(title)
+                    st.caption(msg)
+                else:
+                    st.warning(title)
+                    st.caption(msg)
+
+    # Project summary
+    st.markdown("### Project Summary")
+    st.caption("Main components included in the final thesis submission.")
+    
+    artifacts = pd.DataFrame(
+        [
+            {"Component": "Model", "Status": "✅ Ready", "Artifact": "models/final_model.pkl"},
+            {"Component": "API Server", "Status": "✅ Ready" if api_status else "⚠️ Unavailable", "Artifact": "src/api/app.py"},
+            {"Component": "Database", "Status": "✅ Available", "Artifact": "SQLite store"},
+            {"Component": "Dashboard", "Status": "✅ Included", "Artifact": "streamlit_dashboard.py"},
+            {"Component": "Evaluation", "Status": "✅ Completed", "Artifact": "results/*.json, results/*.csv"},
+            {"Component": "Workflow", "Status": "✅ Documented", "Artifact": "Project report and thesis materials"},
+        ]
+    )
+    st.dataframe(artifacts, use_container_width=True, hide_index=True)

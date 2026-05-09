@@ -28,6 +28,8 @@
   "tests/contract/test_predict_contract.py::PredictContractTests::test_predict_requires_api_key_when_enabled",
   "tests/contract/test_predict_contract.py::PredictContractTests::test_predict_success_response_matches_schema",
   "tests/contract/test_predict_contract.py::PredictContractTests::test_public_request_fixture_matches_schema",
+  "tests/integration/test_connection_async_fallback.py::AsyncConnectionFallbackTests::test_async_url_builder_for_sqlite",
+  "tests/integration/test_connection_async_fallback.py::AsyncConnectionFallbackTests::test_get_async_session_falls_back_to_sync_session",
   "tests/integration/test_gateway_smoke.py::GatewaySmokeTest::test_gateway_predict_roundtrip",
   "tests/integration/test_monitoring_worker.py::MonitoringWorkerTests::test_worker_runs_periodic_cycles",
   "tests/integration/test_monitoring_worker.py::MonitoringWorkerTests::test_worker_survives_cycle_exception"
